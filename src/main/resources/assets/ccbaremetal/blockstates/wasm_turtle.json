@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model": "ccbaremetal:block/wasm_turtle"},
+    "facing=east": {"model": "ccbaremetal:block/wasm_turtle"},
+    "facing=south": {"model": "ccbaremetal:block/wasm_turtle"},
+    "facing=west": {"model": "ccbaremetal:block/wasm_turtle"}
+  }
+}

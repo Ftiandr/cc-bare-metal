@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "keys": "ccbaremetal:item/keyboard",
+    "particle": "ccbaremetal:item/keyboard"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 4],
+      "to": [15, 2, 12],
+      "faces": {
+        "up":    {"uv": [1, 4, 15, 12], "texture": "#keys"},
+        "down":  {"uv": [1, 5, 15, 6], "texture": "#keys", "cullface": "down"},
+        "north": {"uv": [1, 4, 15, 6], "texture": "#keys"},
+        "south": {"uv": [1, 11, 15, 13], "texture": "#keys"},
+        "west":  {"uv": [0, 5, 8, 7], "texture": "#keys"},
+        "east":  {"uv": [0, 5, 8, 7], "texture": "#keys"}
+      }
+    }
+  ]
+}

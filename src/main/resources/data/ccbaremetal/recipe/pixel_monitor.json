@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": ["IAI", "AMA", "IAI"],
+  "key": {
+    "I": {"item": "minecraft:iron_ingot"},
+    "A": {"tag": "c:gems/amethyst"},
+    "M": {"item": "computercraft:monitor_advanced"}
+  },
+  "result": {"id": "ccbaremetal:pixel_monitor", "count": 2}
+}

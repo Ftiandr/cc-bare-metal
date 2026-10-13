@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,on=false": {"model": "ccbaremetal:block/wasm_computer"},
+    "facing=east,on=false": {"model": "ccbaremetal:block/wasm_computer", "y": 90},
+    "facing=south,on=false": {"model": "ccbaremetal:block/wasm_computer", "y": 180},
+    "facing=west,on=false": {"model": "ccbaremetal:block/wasm_computer", "y": 270},
+    "facing=north,on=true": {"model": "ccbaremetal:block/wasm_computer_on"},
+    "facing=east,on=true": {"model": "ccbaremetal:block/wasm_computer_on", "y": 90},
+    "facing=south,on=true": {"model": "ccbaremetal:block/wasm_computer_on", "y": 180},
+    "facing=west,on=true": {"model": "ccbaremetal:block/wasm_computer_on", "y": 270}
+  }
+}

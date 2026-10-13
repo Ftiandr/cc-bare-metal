@@ -1,0 +1,86 @@
+BAREMETAL - the system interface: #include <baremetal.hpp> (C++) / <baremetal.h> (C)
+
+C++ (namespace cc; libbaremetal is linked automatically by c++/cc)
+
+PROCESSES
+  cc::spawn({"ls", "-l"}, options)      start a program -> pid (or -errno)
+     options: .program .env .in .out .err .flags (CC_SPAWN_NEW_GROUP...)
+  cc::wait(pid, &status)  cc::run({"cmd", ...}) -> exit status
+  cc::chdir(dir)  cc::cwd()  cc::pid()  cc::sleep(seconds)
+
+TERMINAL
+  cc::tty::size() -> {cols, rows}     the GUI resizes it (term_resize event)
+  cc::tty::Mode raw(CC_TTY_RAW | CC_TTY_NOECHO);   restored when it ends
+  Output understands ANSI escapes (colours, cursor, ESC[?1049h ...).
+
+EVENTS (CC style)
+  cc::setProcessFlags(CC_PROC_EVENTS | CC_PROC_INPUT)   receive events
+  auto e = cc::pullEvent("key");    e->name, e->args[0].asInt()
+  cc::pullEvent({}, 0)              poll; cc::queueEvent(name, args)
+  cc::startTimer(0.5) -> id, then a "timer" event
+
+GRAPHICS (up to 1280x800, indexed colour; default size = text area, see man gfx) - namespace cc::gfx
+  mode(w, h, bpp[, CC_GFX_GRAY])  textMode()  info()
+  palette(start, {rgb...})  clear(c)  pixel(x,y,c)  getPixel(x,y)
+  fill  line  rect  circle(x,y,r,c,filled)  scroll(dy,c)
+  text(x, y, "utf-8", fg, bg = -1, scale = 1)
+  blit(x, y, w, h, pixels, stride)   one byte per pixel
+  present()                       wait for the frame to be shown
+  target("monitor_0")             draw on a pixel monitor instead
+
+PERIPHERALS (any CC peripheral, from any mod)
+  cc::Peripheral::list()          names and types
+  auto m = cc::Peripheral::find("monitor");
+  auto r = m->call("write", cc::Json::array({"hi"}));
+  if (!r) puts(r.error.c_str());  else r.value[0] ...
+  p.methods()  p.types()  p.present()
+
+CC: TWEAKED PERIPHERALS (typed wrappers; find() takes the first one, or construct by name)
+  cc::Modem        open(ch) transmit(ch, reply, msg) isWireless() namesRemote()
+                   cc::receiveModem(timeout) -> {side, channel, replyChannel, message, distance}
+  cc::rednet::     open() send(id, msg, proto) broadcast(msg, proto) receive(proto, timeout)
+                   host(proto, name) lookup(proto, name) - talks to Lua computers' rednet
+  cc::gps::locate(timeout) -> {x, y, z}
+  cc::Monitor      write setCursorPos size clear scroll setTextColour(cc::colors::red) blit setTextScale
+  cc::Speaker      playNote("harp", vol, pitch) playSound("minecraft:...") playAudio(pcm) stop
+  cc::Printer      newPage write setCursorPos pageSize setPageTitle endPage inkLevel paperLevel
+  cc::Drive        isDiskPresent label mountPath diskId playAudio eject
+  cc::Inventory    size list itemDetail(slot) pushItems(to, slot, n) pullItems  (chests, machines)
+  cc::EnergyStorage energy capacity      cc::FluidStorage tanks pushFluid pullFluid
+  ANY ADDON (no per-mod code): peripherals are discovered at run time -
+    for (auto &p : cc::Peripheral::list()) ...            names and types
+    cc::Peripheral("chatBox_0").invoke("sendMessage", "hi")  any method
+    objects returned by methods: cc::Object::from(r.value[0])->invoke("getName")
+    addon global APIs:  cc::api::list()  cc::api::get("name")->invoke("method", ...)
+    'periph methods NAME', 'periph api' list what is there.
+  Events (modem_message, redstone, disk, ...): cc::pullEvent(); cc::wantEvents() first.
+
+NETWORK (man net) - stream sockets between computers, by hostname and port
+  int fd = cc::net::connect("base", 1234, 10000);  // fd, or -ECONNREFUSED -ETIMEDOUT
+                                                   // -ENETDOWN -EADDRINUSE
+  int l = cc::net::listen(1234); int c = cc::net::accept(l);   // a server
+  read/write/close the fd; cc::net::sendAll(fd, p, n); cc::net::shutdown(fd)
+  cc::waitAny({fd, 0}) waits for sockets, pipes, the terminal and events at once
+  cc::net::info(fd) -> {state, local, localPort, remote, remotePort}
+  cc::net::status() -> {hostname, channel, sockets (/proc/net/ccnet)}
+  cc::net::channel(name); interfaces: /sys/class/net
+  C: cc_net_listen cc_net_accept cc_net_connect cc_net_shutdown (0 or errno)
+  Packets (for Lua computers that want to talk too): a table
+    {ccnet=1, t="syn"|"synack"|"data"|"ack"|"fin"|"rst", src=NAME, sport=PORT,
+     dst=NAME, dport=PORT, id=CONNECTION, hid=SENDER-ID, seq, ack, win, data}
+  sent on the destination's channel (cc::net::channel(dst): FNV-1a of the
+  lower-case name, 100 + h % 60000) with the sender's channel as reply channel.
+  seq/ack count bytes (fin takes one), win is the free receive buffer.
+
+LUA
+  auto r = cc::lua("local a, b = ... return a + b", cc::Json::array({1, 2}));
+
+JSON  cc::Json::parse(text)  .dump()  j["key"]  j[0]  .asInt() .asString()
+      Json::array({...})  Json::object({{"k", v}})  .push(v)  .set(k, v)
+
+REDSTONE   cc::redstoneInput(side)  cc::setRedstone(side, level)  cc::side("left")
+SYSTEM     cc::systemInfo()  cc::setLabel(s)  cc_shutdown(reboot)
+
+C: the raw syscalls are in <baremetal.h> (cc_gfx_*, cc_tty_*, cc_wait...), plus
+helpers returning malloc'd JSON strings: cc_spawn cc_run cc_chdir
+cc_event_wait cc_periph_list cc_periph_call cc_lua cc_sys_info.

@@ -1,0 +1,3 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["ADA","APA","ARA"],
+ "key":{"A":{"tag":"c:gems/amethyst"},"D":{"tag":"c:gems/diamond"},"P":{"item":"computercraft:pocket_computer_advanced"},"R":{"tag":"c:storage_blocks/redstone"}},
+ "result":{"id":"ccbaremetal:wasm_pocket_computer","count":1}}

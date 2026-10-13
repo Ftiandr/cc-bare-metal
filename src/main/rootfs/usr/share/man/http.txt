@@ -1,0 +1,31 @@
+HTTP - the internet (CC: Tweaked's HTTP API)
+
+The computer uses CC: Tweaked's own HTTP implementation, so it works exactly
+like on CC's computers and follows the same server settings (CC's config,
+section http): enabled or not, the address rules (by default the local network
+and the server itself are not allowed), request and websocket limits, sizes,
+bandwidth, proxy.
+
+SHELL
+  curl URL                      print the body
+  curl -o FILE URL              save it; -i also prints the status and headers
+  curl -X METHOD -d DATA URL    send data (-d @FILE reads it from a file)
+  curl -H 'Name: value' URL     add a header (repeatable)
+  curl -f URL                   exit 22 on an HTTP error status; -s quiet
+  wget URL                      download into the current directory
+  wget -O FILE URL              (-O - writes to standard output); -q quiet
+  pkg install https://.../x.ccpkg   install a package from the internet
+Errors are CC's messages: "Domain not permitted", "Not Found", "Timed out"...
+
+C++ (<baremetal.hpp>)
+  auto r = cc::http::get("https://example.com/data.json");
+  if (r.ok) puts(r.body.c_str()); else puts(r.error.c_str());
+  r.status, r.headers (JSON object); bodies are exact bytes.
+  cc::http::post(url, body, contentType), cc::http::request({url, method,
+  body, headers, redirect, timeout}), cc::http::checkURL(url, &error).
+  auto ws = cc::http::websocket("wss://...", &error);
+  ws->send("hi"); auto msg = ws->receive(5.0); ws->close();
+
+LUA / CRAFTOS
+  The global http, as on CC: http.get, http.post, http.request, http.checkURL,
+  http.websocket; CraftOS's wget and pastebin work.

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:block",
+  "pools": [{
+    "rolls": 1,
+    "entries": [{
+      "type": "minecraft:item",
+      "name": "ccbaremetal:keyboard",
+      "functions": [{
+        "function": "minecraft:copy_components",
+        "source": "block_entity",
+        "include": ["ccbaremetal:computer_id"]
+      }]
+    }],
+    "conditions": [{"condition": "minecraft:survives_explosion"}]
+  }]
+}

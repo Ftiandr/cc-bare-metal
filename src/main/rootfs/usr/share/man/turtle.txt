@@ -1,0 +1,44 @@
+TURTLE - the WASM turtle
+
+A WASM turtle is a WASM computer that moves, digs, builds and carries items.
+Its API is CC's turtle API with the same names, arguments and results, so CC
+turtle programs run unchanged in CraftOS ('craftos', 'lua FILE'): the global
+'turtle' is there, as on CC.
+
+FROM THE SHELL
+  turtle forward|back|up|down [N]     move N blocks (one fuel each)
+  turtle left|right [N]               turn
+  turtle dig|digup|digdown [left|right]   dig with a tool upgrade
+  turtle place|placeup|placedown      place the selected item
+  turtle drop[up|down] [N] | suck[up|down] [N]   chests of any mod, or the world
+  turtle select SLOT | inv | refuel [N] | fuel
+  turtle detect[up|down] | compare[up|down]   prints true/false, exit status
+  turtle inspect[up|down]             the block's name, state and tags
+  turtle equip left|right             swap the selected item with an upgrade
+  turtle METHOD [ARGS...]             any method below
+A failed action prints CC's reason ("Movement obstructed", "Out of fuel"...)
+and exits with 1.
+
+FROM PROGRAMS
+  /dev/periph/turtle/METHOD           e.g. cat /dev/periph/turtle/forward
+  C++: cc::Peripheral("turtle").invoke("forward")
+  Lua: turtle.forward()
+Methods: forward back up down turnLeft turnRight dig digUp digDown attack
+attackUp attackDown place placeUp placeDown drop dropUp dropDown suck suckUp
+suckDown detect detectUp detectDown compare compareUp compareDown inspect
+inspectUp inspectDown select getSelectedSlot getItemCount getItemSpace
+getItemDetail transferTo compareTo getFuelLevel getFuelLimit refuel
+equipLeft equipRight getEquippedLeft getEquippedRight.
+Each action waits for its turn, like CC's: moving and turning take 8 ticks.
+
+UPGRADES
+No crafting: the "Modules" button of the turtle's window has two slots, left
+and right, that take any turtle upgrade of CC or an addon (pickaxe, axe,
+shovel, hoe, sword, crafting table, modems, speaker, player detector...). A
+peripheral upgrade is the peripheral "left" or "right"; the other sides are the
+blocks around the turtle (front, back, top, bottom), as on CC. The same window
+shows the turtle's 16 slots (the selected one framed) and its fuel.
+
+FUEL
+Anything that burns in a furnace: 'turtle refuel' burns the selected stack
+(coal = 80 moves). Fuel is kept when the turtle is broken.

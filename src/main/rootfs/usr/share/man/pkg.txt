@@ -1,0 +1,25 @@
+PKG - package manager
+
+  pkg search [text]        list available packages
+  pkg install NAME         install a package and its dependencies
+  pkg install FILE.ccpkg   install a package file
+  pkg install URL          download a package (CC's HTTP, man http) and install it
+  pkg remove NAME          uninstall
+  pkg list                 installed packages
+  pkg files NAME           files of a package
+  pkg build DIR [OUT]      build DIR/manifest.json + DIR/files/ into a package
+  pkg update               newer versions of the installed packages
+  pkg upgrade [NAME...]    install them (files the new version dropped go)
+
+Each installed package remembers where it came from (a repository, a file, a
+URL; /var/lib/pkg/NAME.json "origin"): update looks for a newer version there.
+Versions compare by parts: 1.10 is newer than 1.9, 2.0-beta older than 2.0.
+
+Repositories: /usr/share/pkg, /disk*/pkg on floppy disks, and directories
+listed in /etc/pkg/repos. Packages install into /usr/local.
+
+manifest.json:
+  {"name": "hello", "version": "1.0", "description": "...",
+   "depends": ["other"]}
+Files under DIR/files/ are installed relative to /usr/local, e.g.
+DIR/files/bin/hello -> /usr/local/bin/hello.

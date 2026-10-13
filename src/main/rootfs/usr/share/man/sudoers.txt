@@ -1,0 +1,43 @@
+SUDOERS - who may run what with sudo
+
+/etc/sudoers (and the files in /etc/sudoers.d) say who may run which commands
+as whom. Edit it with "sudo visudo": it opens a copy in your editor, checks it,
+and only then puts it in place; "visudo -c" just checks. A broken file would
+leave nobody able to use sudo (only root's own login or su would help).
+
+RULES
+  WHO  HOSTS = (AS_USER[:AS_GROUP]) [NOPASSWD:] COMMAND, COMMAND...
+    WHO        a user, %group, #uid, ALL, a User_Alias; !negates
+    HOSTS      ALL or this computer's hostname (one file for many computers)
+    AS_USER    who the command runs as: (root), (ALL), (bob, alice); without
+               parentheses: root only
+    NOPASSWD:  no password for the commands after it (PASSWD: asks again)
+    COMMAND    ALL, a Cmnd_Alias, or a full path:
+               /bin/ls            with any arguments
+               /bin/ls /etc       with exactly these (* matches anything)
+               /bin/ls ""         without arguments
+               /usr/local/bin/    any program in that folder
+               !/bin/su           not this (put it after what it limits)
+  The last rule that matches decides.
+
+EXAMPLES
+  %wheel ALL=(ALL:ALL) ALL                   the default: wheel may do anything
+  bob    ALL=(root) /bin/pkg, /usr/bin/cc     bob may run pkg and cc as root
+  %games ALL=(root) NOPASSWD: /bin/redstone   no password for that one
+  alice  ALL=(ALL) ALL, !/bin/su, !/bin/sh    anything but a root shell
+  Cmnd_Alias NET = /bin/sshd, /bin/curl
+  User_Alias ADMINS = alice, bob
+  ADMINS ALL = NET
+
+DEFAULTS
+  Defaults timestamp_timeout=15     minutes the password is remembered (0: ask
+                                    every time, -1: until sudo -k)
+  Defaults passwd_tries=3
+  Defaults secure_path="..."        PATH for the commands and to find them
+  Defaults env_keep += "EDITOR LANG" variables kept (sudo resets the rest)
+
+  #includedir /etc/sudoers.d        every file there (names without dots)
+
+sudo -l lists what you may run; every sudo use, and every refusal, is logged in
+/var/log/auth.log. /etc/sudoers must belong to root and not be writable by
+others (sudo refuses it otherwise; visudo sets 0440).

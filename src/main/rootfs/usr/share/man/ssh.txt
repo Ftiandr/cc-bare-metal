@@ -1,0 +1,80 @@
+SSH - log in to another computer
+
+ssh works between computers that can reach each other with CC modems:
+wireless (in range), ender (anywhere) or wired (same network). Everything is
+encrypted (X25519 key exchange, ChaCha20-Poly1305), and the other computer
+proves who it is with its host key (Ed25519), remembered on first use.
+
+Computers are found by name and port, not by id (a copied computer keeps its
+id): the name is /etc/hostname (sudo hostname base), else the computer's
+label, else computer-N. ssh connects through the computer's network (man net),
+like ssh over TCP/IP: one connection to NAME:PORT for the whole session.
+
+THE SERVER (on the computer you log in to)
+  sudo hostname base       give it a name (optional: computer-N works too)
+  passwd                   a password for password logins
+  sudo sshd                start it (port 22, in the background)
+  sudo sshd -p 2222        another port; several servers may run at once
+  sudo sshd -t             check /etc/ssh/sshd_config
+  sudo sshd -D             in the foreground (for watching it; Ctrl+C stops)
+  sudo pkill sshd          stop it
+  add "sshd" to /etc/rc    start it at every boot
+  /var/log/auth.log        who logged in, failed attempts (root)
+It refuses to start if the port is taken on this computer (ss -l shows who
+listens). If another program closes the modem's channels (closeAll), the
+computer opens its network channel again within a second.
+
+/etc/ssh/sshd_config (as OpenSSH's; defaults shown)
+  Port 22
+  PermitRootLogin prohibit-password    yes | no | prohibit-password (keys only)
+  PasswordAuthentication yes
+  PubkeyAuthentication yes
+  PermitEmptyPasswords no              accounts without a password may not log in
+  AuthorizedKeysFile .ssh/authorized_keys
+  MaxAuthTries 6, MaxSessions 10
+  ClientAliveInterval 15, ClientAliveCountMax 4    drop a silent client after 60 s
+  AllowUsers / DenyUsers / AllowGroups / DenyGroups   patterns like bob or dev*
+  Banner /etc/issue.net                shown before logging in
+  PrintMotd yes                        /etc/motd after logging in
+After a change: sudo pkill sshd; sudo sshd
+
+THE CLIENT
+  ssh user@base                log in to the computer named base
+  ssh -p 2222 user@base        on another port
+  ssh base 'ls /tmp'           run one command (as your own user name)
+  ssh -i ~/.ssh/other user@base, ssh -l user base, ssh -o PasswordAuthentication=no ...
+  ~.                           (after Enter) disconnect a hung session
+The first time, ssh shows the host key's fingerprint and asks; it is kept in
+~/.ssh/known_hosts ([base]:2222 for other ports). If it ever changes, ssh
+refuses to connect: ssh-keygen -R base forgets it if the change is expected.
+If two computers answer to one name, ssh refuses ("two computers answer as").
+Errors: Connection refused (no sshd on that port), Connection timed out (no
+such computer in reach), Network is down (no modem). -o ConnectTimeout=SEC.
+
+COPYING FILES (scp)
+  scp notes.txt user@base:            into the remote home folder
+  scp a.txt b.txt user@base:docs      into a remote folder
+  scp -r project user@base:backup     a folder (-r)
+  scp user@base:docs/a.txt .          from the other computer
+  scp -P 2222 -p ...                  another port (capital P); -p keeps modes and times
+Remote paths are relative to the remote home. Files arrive byte for byte (any
+binary), new files get the sender's mode minus the umask. With a key there is
+no password to type. "ssh base command" also passes exact bytes: it runs
+without a terminal (-t asks for one), so ssh base 'cat f' > copy works.
+
+KEYS (logging in without a password)
+  ssh-keygen                   make ~/.ssh/id_ed25519 and id_ed25519.pub
+  ssh-copy-id user@base        add your public key to base's authorized_keys
+  ssh user@base                now logs in with the key
+  ssh-keygen -l -f FILE        a key's fingerprint; -y prints the public key
+~/.ssh/authorized_keys must not be writable by others (sshd ignores it then).
+
+~/.ssh/config
+  Host base
+      HostName base
+      User bob
+      Port 2222
+      IdentityFile ~/.ssh/id_ed25519
+
+The remote shell is a full terminal: edit, colours, the mouse, Ctrl+C and
+window size all work.

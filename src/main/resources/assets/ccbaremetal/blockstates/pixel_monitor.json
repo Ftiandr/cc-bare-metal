@@ -1,0 +1,244 @@
+{
+  "variants": {
+    "down=false,facing=north,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor"
+    },
+    "down=true,facing=north,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0001"
+    },
+    "down=false,facing=north,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0010"
+    },
+    "down=true,facing=north,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0011"
+    },
+    "down=false,facing=north,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0100"
+    },
+    "down=true,facing=north,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0101"
+    },
+    "down=false,facing=north,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0110"
+    },
+    "down=true,facing=north,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0111"
+    },
+    "down=false,facing=north,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1000"
+    },
+    "down=true,facing=north,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1001"
+    },
+    "down=false,facing=north,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1010"
+    },
+    "down=true,facing=north,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1011"
+    },
+    "down=false,facing=north,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1100"
+    },
+    "down=true,facing=north,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1101"
+    },
+    "down=false,facing=north,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1110"
+    },
+    "down=true,facing=north,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1111"
+    },
+    "down=false,facing=east,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor",
+      "y": 90
+    },
+    "down=true,facing=east,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0001",
+      "y": 90
+    },
+    "down=false,facing=east,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0010",
+      "y": 90
+    },
+    "down=true,facing=east,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0011",
+      "y": 90
+    },
+    "down=false,facing=east,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0100",
+      "y": 90
+    },
+    "down=true,facing=east,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0101",
+      "y": 90
+    },
+    "down=false,facing=east,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0110",
+      "y": 90
+    },
+    "down=true,facing=east,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0111",
+      "y": 90
+    },
+    "down=false,facing=east,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1000",
+      "y": 90
+    },
+    "down=true,facing=east,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1001",
+      "y": 90
+    },
+    "down=false,facing=east,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1010",
+      "y": 90
+    },
+    "down=true,facing=east,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1011",
+      "y": 90
+    },
+    "down=false,facing=east,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1100",
+      "y": 90
+    },
+    "down=true,facing=east,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1101",
+      "y": 90
+    },
+    "down=false,facing=east,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1110",
+      "y": 90
+    },
+    "down=true,facing=east,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1111",
+      "y": 90
+    },
+    "down=false,facing=south,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor",
+      "y": 180
+    },
+    "down=true,facing=south,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0001",
+      "y": 180
+    },
+    "down=false,facing=south,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0010",
+      "y": 180
+    },
+    "down=true,facing=south,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0011",
+      "y": 180
+    },
+    "down=false,facing=south,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0100",
+      "y": 180
+    },
+    "down=true,facing=south,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0101",
+      "y": 180
+    },
+    "down=false,facing=south,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0110",
+      "y": 180
+    },
+    "down=true,facing=south,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0111",
+      "y": 180
+    },
+    "down=false,facing=south,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1000",
+      "y": 180
+    },
+    "down=true,facing=south,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1001",
+      "y": 180
+    },
+    "down=false,facing=south,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1010",
+      "y": 180
+    },
+    "down=true,facing=south,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1011",
+      "y": 180
+    },
+    "down=false,facing=south,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1100",
+      "y": 180
+    },
+    "down=true,facing=south,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1101",
+      "y": 180
+    },
+    "down=false,facing=south,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1110",
+      "y": 180
+    },
+    "down=true,facing=south,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1111",
+      "y": 180
+    },
+    "down=false,facing=west,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor",
+      "y": 270
+    },
+    "down=true,facing=west,left=false,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0001",
+      "y": 270
+    },
+    "down=false,facing=west,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0010",
+      "y": 270
+    },
+    "down=true,facing=west,left=false,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0011",
+      "y": 270
+    },
+    "down=false,facing=west,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0100",
+      "y": 270
+    },
+    "down=true,facing=west,left=false,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_0101",
+      "y": 270
+    },
+    "down=false,facing=west,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0110",
+      "y": 270
+    },
+    "down=true,facing=west,left=false,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_0111",
+      "y": 270
+    },
+    "down=false,facing=west,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1000",
+      "y": 270
+    },
+    "down=true,facing=west,left=true,right=false,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1001",
+      "y": 270
+    },
+    "down=false,facing=west,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1010",
+      "y": 270
+    },
+    "down=true,facing=west,left=true,right=false,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1011",
+      "y": 270
+    },
+    "down=false,facing=west,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1100",
+      "y": 270
+    },
+    "down=true,facing=west,left=true,right=true,up=false": {
+      "model": "ccbaremetal:block/pixel_monitor_1101",
+      "y": 270
+    },
+    "down=false,facing=west,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1110",
+      "y": 270
+    },
+    "down=true,facing=west,left=true,right=true,up=true": {
+      "model": "ccbaremetal:block/pixel_monitor_1111",
+      "y": 270
+    }
+  }
+}

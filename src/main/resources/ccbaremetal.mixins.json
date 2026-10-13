@@ -1,0 +1,24 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "dev.ccbaremetal.unicode.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractComputerBlockEntityMixin",
+    "DataComponentUtilMixin",
+    "MonitorBlockEntityMixin",
+    "PrinterPeripheralMixin",
+    "PrintoutDataMixin",
+    "PrintoutItemMixin",
+    "StringUtilMixin",
+    "UserComputerInputMixin"
+  ],
+  "client": [
+    "client.DirectFixedWidthFontRendererMixin",
+    "client.FixedWidthFontRendererMixin",
+    "client.TerminalWidgetMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

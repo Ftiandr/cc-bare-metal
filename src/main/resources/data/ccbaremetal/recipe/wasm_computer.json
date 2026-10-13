@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": ["ADA", "ACA", "ARA"],
+  "key": {
+    "A": {"tag": "c:gems/amethyst"},
+    "D": {"tag": "c:gems/diamond"},
+    "C": {"item": "computercraft:computer_advanced"},
+    "R": {"tag": "c:storage_blocks/redstone"}
+  },
+  "result": {"id": "ccbaremetal:wasm_computer", "count": 1}
+}

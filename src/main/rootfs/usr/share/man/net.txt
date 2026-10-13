@@ -1,0 +1,66 @@
+NET - connections between computers (sockets over modems)
+
+Computers talk over CC modems (wireless in range, ender anywhere, wired on the
+same cable network) as over TCP/IP: a computer is reached by its NAME, a
+service on it by a PORT. ssh, scp and nc use it, and so can your programs.
+
+  NAME   /etc/hostname (sudo hostname base), else the label, else computer-N.
+         "localhost" is this computer.
+  PORT   1..65535. Below 1024 only root may listen (22 is sshd's).
+
+COMMANDS
+  nc -l 1234                 wait for a connection on port 1234; what arrives
+                             goes to the screen, what you type goes back
+  nc base 1234               connect to it
+  nc -l 1234 > file          receive a file;   nc base 1234 < file   send it
+  nc -d -l 1234 > f &        a server in the background (-d: no keyboard input)
+  nc -k -l 1234              take one connection after another
+  nc -z base 20-30           which ports accept connections
+  ss                         this computer's connections
+  ss -l                      who listens on which port (ss -a: both)
+  ss -s                      the name, the modem channel and the interfaces
+  netstat                    the same as ss -a
+  ip link                    network interfaces: lo (this computer), wlanN
+                             (wireless or ender modem), ethN (wired); -s with
+                             packet counters
+  sudo ip link set wlan0 down   stop using a modem (up: again)
+  ip addr                    the name and channel each interface listens on
+At the end of standard input nc closes its direction: the other side reads
+end of file. nc ends when the other side closes.
+
+ERRORS
+  Connection refused     the computer is there, but nothing listens on that port
+  Connection timed out   nobody answered: wrong name, out of range, no modem
+                         there, or a wired modem without a cable to it
+  Network is down        no modem attached to this computer
+  Address in use         the port is taken (ss -l); when connecting: two
+                         computers answer as that name (rename one)
+
+FILES
+  /sys/class/net/NAME/       type, operstate (up/down; root writes), address
+                             (the channel), mtu, range, device (the modem),
+                             statistics/rx_packets rx_bytes tx_packets tx_bytes
+  /proc/net/ccnet            the sockets: a header line, then "state local lport
+                             remote rport uid recvq sendq" per socket
+
+HOW IT WORKS
+Every computer with a modem listens on one modem channel, derived from its name
+(a hash, 100..60099; ss -s shows it). A packet goes to the channel of the
+computer it is for; the port is inside the packet, as in a TCP header. Other
+computers ignore it (a name that hashes alike is filtered by name), and the
+kernel opens the channel again if a program closes it (closeAll). Packets carry
+sequence numbers and acknowledgements: lost ones are sent again, so a stream
+arrives complete and in order, or the connection fails after 30 s of silence.
+Like a real radio network, anyone in range listening on that channel sees the
+packets: protect secrets with encryption (ssh does). The packet format is open
+(Lua computers can speak it): see man baremetal, section network.
+
+IN C++ (#include <baremetal.hpp>)
+  int fd = cc::net::connect("base", 1234);   // or -ECONNREFUSED, -ETIMEDOUT ...
+  write(fd, "hi\n", 3); read(fd, buf, n); close(fd);
+  int l = cc::net::listen(1234);             // a server
+  int c = cc::net::accept(l);                // the next connection
+  cc::net::shutdown(fd);                     // no more writes, still read
+  cc::waitAny({fd, 0})                       // wait for a socket and the keyboard
+  cc::net::info(fd), cc::net::status()       // addresses; /proc/net/ccnet
+Sockets are ordinary file descriptors: read, write, close, poll.

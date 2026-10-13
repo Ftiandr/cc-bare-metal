@@ -1,0 +1,73 @@
+DEV - devices as files
+
+As in Linux, drivers turn peripherals into devices of a class (graphics, input,
+sound, printer, tty, net, redstone): each gets a node in /dev (net devices
+have none) and attributes in /sys/class/CLASS/NAME. A peripheral no driver
+knows is still reachable through /dev/periph. Everything is also available
+through the C++ API (cc::Peripheral, cc::gfx, cc::net), Lua (peripheral.wrap)
+and commands; the files are the way in for scripts and Linux programs.
+Nothing runs unless a file is open, so unused devices cost nothing.
+
+  lsdev                    every device: class, name, node, peripheral; then
+                           peripherals without a driver
+  ls /sys/class/CLASS      the devices of a class
+  cat /sys/class/CLASS/NAME/uevent       DEVNAME=its node below /dev
+  cat /sys/class/CLASS/NAME/device       its peripheral (none: built in)
+  /sys/bus/peripheral/devices/NAME/      type (CC types), driver (which one
+                           took it, empty if none), devices (what it became)
+Numbers are given when a device appears (the lowest free one): fb0, event0,
+event1 are the computer's own; the first pixel monitor is fb1, and so on.
+
+SCREEN AND INPUT
+  /dev/fb0               the screen: one byte (palette index) per pixel   (man gfx)
+  /dev/input/event0      keyboard, Linux evdev records
+  /dev/input/event1      mouse (absolute positions, buttons, wheel)
+  /dev/input/mice        mouse as PS/2 packets
+  /dev/input/event2...   touchscreens of pixel and CC monitors, numbered as
+                         they are attached (lsdev). A touch
+                         is ABS_X, ABS_Y, BTN_TOUCH 1, SYN, BTN_TOUCH 0, SYN; pixels
+                         from 0. /sys/class/input/eventN: name, device, fb, size.
+                         evtest -l lists them.
+  /dev/input/eventN      a player's keyboard (the keyboard item), while they type
+                         with it: keys, and the captured mouse as REL_X, REL_Y,
+                         REL_WHEEL, BTN_LEFT...; /sys/class/input/eventN: name
+                         keyboard, player. Lua/CC events: mouse_relative (dx dy),
+                         mouse_button (button down), mouse_wheel (steps),
+                         keyboard_attach / keyboard_detach (device player)
+  /dev/tty, /dev/console the terminal; /dev/null /dev/zero /dev/urandom
+
+ANY PERIPHERAL, FROM ANY MOD: /dev/periph/NAME/
+  NAME is the side (top, left...) or the network name (chest_0, chatBox_1...).
+  ls /dev/periph/NAME              its methods, plus "type" and "events"
+  cat /dev/periph/NAME/type        its types
+  cat /dev/periph/NAME/getSize     call a method without arguments -> [51,19]
+  echo 1 2 red > /dev/periph/NAME/setPixel        call with arguments
+  echo 5 6 > .../getPixel; cat .../getPixel        arguments, then the result
+                                   (kept 10 s for the next reader)
+  Arguments: words (numbers, true/false/nil, "quoted text") or one JSON
+  array ([1, {"a": 2}]). Results: a JSON array per call. Errors go to stderr.
+  Programs can open a method file read-write: write the arguments + newline,
+  read the result. Objects returned by methods are {"__object": id, ...}.
+  cat /dev/periph/NAME/events      that peripheral's events, one JSON array per
+                                   line (["monitor_touch","left",3,4])
+  cat /dev/periph/events           every event of the computer
+
+DRIVERS: COMMON PERIPHERALS, LINUX STYLE
+  /dev/fb1, /dev/fb2 ...   pixel monitors, like /dev/fb0; settings in
+                           /sys/class/graphics/fbN (device = peripheral name);
+                           fbset -fb /dev/fb1 320x200x8
+  /dev/dsp0 ...            speakers (class sound): signed 8-bit PCM, 48 kHz mono
+                           (head -c 48000 /dev/urandom > /dev/dsp0: one second
+                           of noise); writing waits while the buffer is full
+  /dev/lp0 ...             printers: text is printed, with pages, on close
+                           (cat notes.txt > /dev/lp0); /sys/class/printer/lp0/
+                           ink, paper: levels
+  /dev/monitor0 ...        CC monitors as terminals (class tty): text,
+                           newlines, ANSI colours and cursor movement
+                           (printf '\033[31mred\n' > /dev/monitor0); and their
+                           touchscreens /dev/input/eventN
+  wlan0, eth0 ...          modems: network interfaces (class net, no node):
+                           /sys/class/net/NAME, ip link (man net)
+
+REDSTONE: /sys/class/redstone/SIDE/input, output (0-15)
+  echo 15 > /sys/class/redstone/back/output; cat /sys/class/redstone/left/input

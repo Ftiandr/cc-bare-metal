@@ -1,0 +1,37 @@
+# Which license covers which files (https://reuse.software). The code and everything not listed here is the
+# project's own work under MPL-2.0; textures recoloured from CC: Tweaked keep CC's license.
+version = 1
+
+[[annotations]]
+path = ["**"]
+precedence = "closest"
+SPDX-FileCopyrightText = "Ftiandr"
+SPDX-License-Identifier = "MPL-2.0"
+
+# Recoloured from CC: Tweaked's advanced computer, turtle, monitor and pocket computer, and its window sprites
+# (scripts/gen_*_textures.py). CC: Tweaked's textures are Copyright 2011 Daniel Ratcliffe, under the ComputerCraft
+# Public License: allowed in non-commercial Minecraft mods.
+[[annotations]]
+path = [
+    "src/main/resources/assets/ccbaremetal/textures/block/wasm_computer_*.png",
+    "src/main/resources/assets/ccbaremetal/textures/block/wasm_turtle_*.png",
+    "src/main/resources/assets/ccbaremetal/textures/block/pixel_monitor_*.png",
+    "src/main/resources/assets/ccbaremetal/textures/item/wasm_pocket_computer*",
+    "src/main/resources/assets/ccbaremetal/textures/gui/sprites/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = ["2011 Daniel Ratcliffe", "Ftiandr"]
+SPDX-License-Identifier = "LicenseRef-CCPL"
+
+# The Gradle wrapper and the NeoForged MDK template files.
+[[annotations]]
+path = ["gradle/wrapper/**", "gradlew", "gradlew.bat"]
+precedence = "override"
+SPDX-FileCopyrightText = "Gradle Inc"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["TEMPLATE_LICENSE.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "NeoForged"
+SPDX-License-Identifier = "MIT"

@@ -1,0 +1,12 @@
+{
+  "parent": "computercraft:block/turtle_base",
+  "textures": {
+    "back": "ccbaremetal:block/wasm_turtle_back",
+    "backpack": "ccbaremetal:block/wasm_turtle_backpack",
+    "bottom": "ccbaremetal:block/wasm_turtle_bottom",
+    "front": "ccbaremetal:block/wasm_turtle_front",
+    "left": "ccbaremetal:block/wasm_turtle_left",
+    "right": "ccbaremetal:block/wasm_turtle_right",
+    "top": "ccbaremetal:block/wasm_turtle_top"
+  }
+}

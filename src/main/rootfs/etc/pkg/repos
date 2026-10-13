@@ -1,0 +1,2 @@
+# Extra package repositories: one directory of *.ccpkg files per line.
+# /usr/share/pkg and /disk*/pkg are always searched.

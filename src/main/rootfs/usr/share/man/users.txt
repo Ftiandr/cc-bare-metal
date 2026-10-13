@@ -1,0 +1,67 @@
+USERS - users, passwords and permissions
+
+The system has users and Unix permissions, as Linux. On its first start a
+computer runs a setup (/sbin/setup): its name, the first user and password
+(in the group wheel: may use sudo), and optionally a root password. root
+always exists; without a password it is locked (use sudo). The login prompt
+appears at every start and after "exit". Computers from before the setup
+keep their "user", logged in automatically while it has no password.
+
+ACCOUNTS
+  passwd                 set your password (it is asked at boot from then on)
+  passwd -d user         remove it again (root): automatic login comes back
+  sudo COMMAND           run a command as root; members of wheel may; asks
+                         your password (if you have one) once per 15 minutes
+  sudo -i / sudo -s      a root shell (login shell / in this folder)
+  sudo -u bob COMMAND    as another user; sudo -k forgets the password
+  su [-] [USER]          become USER (default root), with USER's password
+  id, whoami, groups     who you are
+  sudo useradd bob       a new user (home /home/bob, group bob; locked until
+                         sudo passwd bob); -G wheel,users adds groups
+  sudo usermod -aG wheel bob    add bob to a group (wheel: may use sudo)
+  sudo userdel -r bob    delete bob (-r: and his home)
+  sudo groupadd NAME, groupdel NAME
+  sudo autologin user    log user in on this screen at every boot, without the
+                         password (once per boot; ssh, su, sudo still ask).
+                         autologin -d: off; autologin: the setting. With
+                         LOCK_AFTER in /etc/lock.conf the screen still locks
+  /etc/autologin         "user always" (autologin), or "user": only while
+                         user has no password
+  lock                   hide the screen until your password (or root's) is
+                         typed; Ctrl+C does not unlock. Programs go on behind
+                         it; only the prompt gets the keyboard
+  lock -t 5m             lock by itself after 5 min without input (300, 90s,
+                         1h; 0: never); lock -s shows it. For every login:
+                         LOCK_AFTER=5m in /etc/lock.conf
+  shutdown +10           turn off in 10 minutes (22:30, -r reboot, -c cancel,
+                         --show); every terminal is warned. poweroff/reboot at
+                         once. Root, or the user at the computer itself
+  export TMOUT=600       log an idle shell out after 600 s without input (put
+                         it in ~/.profile, or in /etc/profile for everyone)
+  sudo visudo            who may run what with sudo (/etc/sudoers: man sudoers);
+                         by default the group wheel may run anything
+
+FILES
+  /etc/passwd   name:x:uid:gid:comment:home:shell
+  /etc/group    name:x:gid:member,member
+  /etc/shadow   name:hash:... (root only; hashes are crypt() SHA-512, "$6$")
+
+PERMISSIONS
+  ls -l shows them: -rwxr-x--- owner group. r read, w write, x run (for
+  directories: x enter, w create and delete inside).
+  chmod 755 FILE, chmod u+x,go-w FILE, chmod -R g+rX DIR
+  chown bob FILE, chown bob:users FILE (root), chgrp GROUP FILE
+  umask 022       new files rw-r--r--, directories rwxr-xr-x (umask 077: private)
+  The system (/bin, /usr) and /etc are root's; /usr/local belongs to wheel
+  (pkg install works for its members); /tmp is shared, but only the owner
+  may delete a file there. cc makes the programs it builds runnable; a
+  downloaded program needs chmod +x first. su, sudo and passwd are setuid
+  root (s in ls -l).
+
+C/C++
+  getuid geteuid getgid getgroups setuid setgid setgroups initgroups
+  getpwnam getpwuid getgrnam getgrouplist getspnam crypt chmod chown umask
+  access (the real user's permission) and stat (st_mode, st_uid, st_gid) work
+  as on Linux; <pwd.h> <grp.h> <shadow.h> <crypt.h>.
+
+See also: man ssh

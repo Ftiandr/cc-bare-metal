@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:block",
+  "pools": [{
+    "rolls": 1,
+    "entries": [{
+      "type": "minecraft:item",
+      "name": "ccbaremetal:wasm_turtle",
+      "functions": [{
+        "function": "minecraft:copy_components",
+        "source": "block_entity",
+        "include": ["ccbaremetal:computer_id", "minecraft:custom_name", "ccbaremetal:turtle_upgrades", "ccbaremetal:turtle_fuel"]
+      }]
+    }],
+    "conditions": [{"condition": "minecraft:survives_explosion"}]
+  }]
+}

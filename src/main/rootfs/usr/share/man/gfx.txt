@@ -1,0 +1,56 @@
+GFX - graphics
+
+The screen has indexed colour, up to 1280x800 pixels. By default the
+framebuffer (/dev/fb0) has a common resolution (16:9, 16:10 or 4:3, e.g.
+480x270, 512x288, 640x360) that fills the text area, 256 colours; it follows
+the window size until a program or fbset picks a mode ('fbset auto' returns
+to it). sysInfo().screen_width/height give that size. Depths:
+  1 bpp  2 colours        2 bpp  4 colours (grey)
+  4 bpp  16 colours (CC palette by default, or grey with CC_GFX_GRAY)
+  8 bpp  256 colours (CC colours, 6x6x6 cube, grey ramp)
+Smaller resolutions (e.g. 256x256 or 128x128) are scaled up and are cheaper
+to send to other players.
+
+Only changed areas are sent, packed at the mode's bit depth and compressed,
+so graphics stay cheap for the server and the network.
+
+From C++: cc::gfx in <baremetal.hpp>, see 'man baremetal'. From Lua: the gfx API
+  gfx.setMode(w, h, bpp[, grey])   gfx.textMode()
+  gfx.clear(c)  gfx.setPixel(x,y,c)  gfx.fill(x,y,w,h,c)  gfx.line(...)
+  gfx.rect(...)  gfx.circle(x,y,r,c,filled)  gfx.text(x,y,s,fg,bg,scale)
+  gfx.blit(x,y,w,h,bytes[,key])  gfx.setPalette(i, rgb | r,g,b)
+  gfx.present()  gfx.setTarget("monitor_0")  gfx.setTarget(nil)
+
+Pixel monitors (blocks) work the same way and are also peripherals for
+normal CC computers: setPixel, fill, blit, setPalette, getSize, ...
+Try: gfxdemo (pkg install demos)
+
+THREE WAYS TO DRAW (all on the same framebuffer)
+  1. /dev/fb0, like Linux fbdev: one byte (palette index) per pixel,
+     offset = y * width + x. Any program or tool can draw:
+         fbset 320x200x8                  (or write /sys/class/graphics/fb0/*)
+         head -c 64000 /dev/urandom > /dev/fb0
+     The picture stays after the program exits; any key returns to text.
+     /sys/class/graphics/fb0: virtual_size bits_per_pixel stride palette
+     display (text|graphics) max_size. Example: /usr/share/examples/framebuffer.cpp
+  2. cc::gfx (C++) / gfx (Lua): lines, rectangles, circles, text, blit, palette;
+     the screen returns to text when the program exits.
+  3. Pixel monitor blocks: gfx target, or their peripheral methods.
+
+INPUT AS FILES (/dev/input, like Linux evdev)
+  /dev/input/event0   keyboard: struct input_event (24 bytes) from <linux/input.h>,
+                      EV_KEY with Linux KEY_* codes, value 1 press / 0 release / 2 repeat
+  /dev/input/event1   mouse: EV_ABS ABS_X/ABS_Y (framebuffer pixels in graphics mode,
+                      character cells from 0 in text mode), EV_KEY BTN_LEFT/RIGHT/MIDDLE,
+                      EV_REL REL_WHEEL; movement is reported while it is open
+  /dev/input/mice     mouse as 3-byte PS/2 packets (buttons, dx, dy)
+  /dev/input/event2.. touchscreens of pixel and CC monitors (see lsdev): ABS_X, ABS_Y
+                      (pixels from 0), BTN_TOUCH 1, SYN_REPORT, BTN_TOUCH 0, SYN_REPORT.
+                      /sys/class/input/eventN: name, device, fb (its /dev/fbN), size.
+                      A monitor needs nothing else: draw into /dev/fb1, read touches
+                      from /dev/input/event2. evtest -l lists the devices.
+                      Example: /usr/share/examples/touchpaint.cpp (palette strip,
+                      painting, clear; c++ touchpaint.cpp -o tp && ./tp [NAME]).
+  Every reader gets every event; the terminal still receives the keys too.
+  evtest DEVICE prints them. Example: /usr/share/examples/paint.cpp
+  (fb0 + event0 + event1, no special API).

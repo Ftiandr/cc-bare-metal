@@ -1,0 +1,44 @@
+CC - the C and C++ compiler (clang/LLVM for WebAssembly)
+
+  c++ [options] files...      C++ (also g++, clang++)
+  cc  [options] files...      C   (also gcc, clang, c99)
+
+Compiles C and C++ to WebAssembly and links programs you run like any
+other command. It is the real clang 22 with libc++, running inside this
+computer, so it is not fast: a C++ file with <iostream> takes 10-20 s,
+C about a second; loading the compiler takes ~3 s the first time after
+the server starts.
+
+  c++ hello.cpp -o hello && ./hello
+  c++ -std=c++20 -O2 -Wall game.cpp util.cpp -o game
+  c++ -c a.cpp b.cpp && ar rcs libab.a a.o b.o && c++ main.cpp -L. -lab -o prog
+  cc -O2 tool.c -o tool
+
+Options are the usual gcc/clang ones: -o -c -S -E -O0..-O3 -Os -g
+-I/-L/-l -D -std=c++17|c++20|c++23|c11|c17 -Wall -Wextra -v (show the
+steps) --version. C++ exceptions are on (-fno-exceptions turns them off);
+RTTI, templates, the whole standard library (containers, <algorithm>,
+<string>, <iostream>, <fstream>, <filesystem>, <chrono>, <regex>,
+<format>...) work. There are no threads.
+
+Binutils: ar ranlib nm objdump objcopy strip size c++filt addr2line ld.
+
+POSIX additions (WASI has none of these; libbaremetal provides them): <termios.h>
+(tcgetattr/tcsetattr/cfmakeraw; ICANON ECHO ISIG ICRNL VMIN VTIME work: with
+ICRNL kept Enter reads as \n, after cfmakeraw as \r), ioctl(TIOCGWINSZ), <sys/wait.h> (waitpid),
+<spawn.h> (posix_spawn, posix_spawnp), system(), popen()/pclose(). There is
+no fork(): start programs with posix_spawn or system.
+
+Headers: <baremetal.hpp> is the C++ interface of this system (graphics,
+peripherals of any mod, events, Lua, processes, terminal) and <baremetal.h>
+the raw syscalls for C. libbaremetal is linked automatically. See 'man baremetal'
+and the examples in /usr/share/examples (hello.cpp, exceptions.cpp,
+circles.cpp, peripherals.cpp, lua.cpp, hello.c).
+
+Programs are WASI (wasm32-wasip1) modules, so they can also be built
+outside the game with wasi-sdk: clang++ --target=wasm32-wasip1
+-fwasm-exceptions -mllvm -wasm-use-legacy-eh=false (the runtime supports
+the current WebAssembly exception handling, not the legacy one).
+
+Files: /usr/lib/llvm (clang, lld), /usr/lib/wasi (libc, libc++),
+/usr/include (ccbaremetal headers), /usr/local/include, /usr/local/lib.

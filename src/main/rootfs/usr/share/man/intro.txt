@@ -1,0 +1,46 @@
+INTRO - welcome to CC: Bare Metal
+
+This computer runs WebAssembly programs on a small Unix-like system.
+Everything is sandboxed: programs only see this computer's own files.
+
+FILES
+  /bin /usr/bin    system programs (read-only)
+  /usr/local       your programs and installed packages
+  /home/user       your home directory
+  /tmp             temporary files (cleared on reboot)
+  /rom             CC's ROM (Lua programs and APIs)
+  /disk ...        floppy disks in attached disk drives
+  /dev /proc /sys  devices: screen, input, every peripheral (/dev/periph),
+                   monitors, speakers, printers ('man dev'); processes; settings
+
+GETTING AROUND
+  ls cd pwd cat cp mv rm mkdir edit more grep find ps kill df
+  help             shell built-ins and syntax
+  coreutils, textutils, ccutils   list every command (sed awk diff tar xargs
+                   sha256sum base64 ...), each also has --help or usage
+
+CC: TWEAKED
+  lsperiph / periph       peripherals and their methods
+  rednet gps              networking, compatible with Lua computers
+  ssh scp nc ss ip        connections between computers by name and port
+  lsdev                   devices: what each peripheral became (man dev)
+  monitor speaker lp disk inv energy   monitors, sound, printing, disks,
+                          inventories, energy of blocks from any mod
+  redstone                redstone outputs and inputs
+  fbset                   graphics modes and screen resolution (/dev/fb0)
+  evtest                  keyboard/mouse events from /dev/input
+  man PAGE         manual pages: sh edit cc pkg gfx dev periph lua craftos baremetal keys
+                   turtle http users sudoers ssh net
+
+PROGRAMMING
+  c++ hello.cpp -o hello  compile C++ to WebAssembly (also g++; cc/gcc for C)
+  lua script.lua          run a CC Lua program (all CC APIs available)
+  craftos                 start CraftOS, CC's own shell
+  ldd prog                show what a WebAssembly program imports
+
+  Examples are in /usr/share/examples.
+
+KEYS
+  Ctrl+C  interrupt     Ctrl+T  terminate (CraftOS programs)
+  Hold Ctrl+R  reboot   Hold Ctrl+S  shut down
+  lock (lock -t 5m: by itself), shutdown +10 / -c   man users

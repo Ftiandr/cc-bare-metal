@@ -1,0 +1,23 @@
+PERIPH - CC peripherals
+
+  periph list                       attached peripherals
+  periph methods NAME               methods of a peripheral
+  periph call NAME METHOD [ARGS]    call a method, e.g.
+                                    periph call left getItemDetail 1
+  periph lua CODE [ARGS]            run Lua with the CC APIs
+
+Peripherals from every mod that supports CC: Tweaked work here: monitors,
+modems (wired networks too), disk drives (mounted at /disk), inventories,
+Advanced Peripherals, and so on.
+
+POCKET COMPUTER MODULES
+On a WASM pocket computer the peripherals are its modules: the "Modules"
+button of its window opens 4 slots that take any pocket upgrade of CC or an
+addon (speaker, modems, Advanced Peripherals' player detector, geo scanner...).
+Slot 1 is "back" (like the upgrade of a CC pocket computer), slots 2-4 are
+"slot2", "slot3", "slot4". Putting a module in or taking it out attaches or
+detaches it at once (events "peripheral" / "peripheral_detach"). Shift + right
+click with a module in the other hand installs it without opening the window.
+There is no redstone on a pocket computer.
+
+See also: man http (the internet), man turtle.

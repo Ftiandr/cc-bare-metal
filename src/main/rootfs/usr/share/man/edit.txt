@@ -1,0 +1,38 @@
+EDIT - text editor
+
+  edit FILE        open (or create) FILE. F1 inside shows the keys.
+
+Moving
+  Arrows PgUp PgDn         move
+  Home / End               start of the text (again: of the line) / end of the line
+  Ctrl+Left / Ctrl+Right   by words        Ctrl+Home / Ctrl+End   start / end of the file
+  Mouse click, wheel       put the cursor, scroll
+
+Selecting
+  Shift + any movement     select (Shift+Ctrl+Right selects a word, ...)
+  Mouse drag               select (dragging over the edge scrolls)
+  Double / triple click    select a word / a line
+  Ctrl+A                   select everything        Esc   clear the selection
+
+Editing
+  Typing                   replaces the selection
+  Backspace / Delete       delete the selection, or one character
+  Ctrl+Backspace           delete the word before the cursor
+  Enter                    new line with the same indentation
+  Tab / Shift+Tab          indent / unindent the selected lines (Tab alone: to the next 4 columns)
+  Ctrl+D                   duplicate the line or the selection
+  Ctrl+K                   delete the line
+
+Clipboard and undo
+  Ctrl+C / Ctrl+X          copy / cut the selection (without one: the whole line). Copies also go to
+                           your own clipboard, so they can be pasted anywhere (Ctrl+Shift+V).
+  Ctrl+V                   paste. In the game window Ctrl+V pastes your clipboard; it arrives as
+                           one block (no extra indentation).
+  Ctrl+Z / Ctrl+Y          undo / redo (continuous typing is undone in one step)
+
+Files and searching
+  Ctrl+S save    Ctrl+Q quit (twice with unsaved changes)
+  Ctrl+F find    F3 or Ctrl+N find next    Ctrl+R replace all    Ctrl+G go to line
+
+Line numbers on the left, the status bar shows line:column and the size of the selection.
+Syntax colours for C/C++, Lua and shell scripts; UTF-8 text.

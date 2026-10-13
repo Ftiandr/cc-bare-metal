@@ -1,0 +1,155 @@
+# 5. Графика и ввод
+
+## Экран
+
+У каждого WASM-компьютера два режима: текстовый терминал и графический фреймбуфер.
+
+- Фреймбуфер индексированный: **1, 2, 4 или 8 бит на пиксель** (2, 4, 16 или 256 цветов), палитра 24 бита.
+  8 бит: цвета CC (0–15), куб 6×6×6 (16–231), серые (232–255).
+- Размер до **1280×800**. По умолчанию — самое большое стандартное разрешение (16:9, 16:10, 4:3, 3:2: 480×270,
+  512×288, 512×320, 640×360, 640×480, 800×450, 960×540, 1280×720...), которое помещается в текстовое поле окна,
+  256 цветов. Пока режим не задан явно, размер следует за размером окна; `fbset auto` возвращает его.
+- **Экономно**: по сети уходят только изменённые прямоугольники, упакованные по глубине цвета и сжатые, и только
+  тем, у кого открыт экран; скорость ограничена настройкой `max_sync_kb_per_tick`. Текстовый режим передаётся
+  символами. В заголовке окна видно разрешение, число цветов и текущий трафик.
+- Окно игры масштабирует картинку под свой размер.
+
+## Три способа рисовать
+
+### 1. `cc::gfx` (C++) и `gfx` (Lua)
+
+```cpp
+auto info = cc::systemInfo();
+cc::gfx::mode(info["screen_width"].asInt(), info["screen_height"].asInt(), 8);
+cc::gfx::clear(0);
+cc::gfx::fill(10, 10, 50, 30, 196);
+cc::gfx::line(0, 0, 100, 60, 15);
+cc::gfx::circle(160, 90, 40, 46, true);
+cc::gfx::text(4, 4, "Привет", 15);       // шрифт 6×9, Unicode; ещё bg и scale
+cc::gfx::palette(1, {0xFF8800});
+cc::gfx::present();                       // дождаться, пока кадр показан
+```
+
+Также `rect`, `pixel`, `getPixel`, `scroll`, `blit(x, y, w, h, pixels, stride)`, `info()`, `textMode()`.
+Когда программа завершается, экран возвращается в текстовый режим.
+
+В Lua: `gfx.setMode(w, h, bpp[, grey])`, `gfx.textMode()`, `gfx.getDefaultSize()`, `gfx.getMode()`,
+`gfx.clear`, `gfx.setPixel`, `gfx.fill`, `gfx.line`, `gfx.rect`, `gfx.circle`, `gfx.text`, `gfx.blit`,
+`gfx.setPalette`, `gfx.present`, `gfx.setTarget("top")`.
+
+### 2. `/dev/fb0` — как в Linux
+
+Экран — это файл: **один байт (номер цвета) на пиксель**, смещение = `y * ширина + x`. Рисовать может любая
+программа и любая утилита:
+
+```sh
+fbset 320x200x8                                # режим (или через /sys)
+head -c 64000 /dev/urandom > /dev/fb0          # шум на весь экран
+```
+
+Картинка остаётся после выхода программы; любая клавиша возвращает текстовый экран.
+
+`/sys/class/graphics/fb0/` — файлы, которые можно читать и записывать:
+
+| Файл | Значение |
+|---|---|
+| `virtual_size` | `512,288`; запись `320,200` меняет разрешение, `auto` — по умолчанию |
+| `bits_per_pixel` | `8` (1, 2, 4 или 8) |
+| `stride` | байт на строку `/dev/fb0` (= ширина) |
+| `palette` | строки `НОМЕР RRGGBB`; запись таких строк меняет цвета |
+| `display` | `text` или `graphics`; запись переключает экран |
+| `default_size`, `max_size`, `name` | только чтение |
+
+`fbset` показывает режим; `fbset WxH[xBPP]`, `fbset -g W H`, `fbset -depth N`, `fbset -pal N RRGGBB`,
+`fbset auto`, `fbset text|graphics`, `-fb /dev/fbN` — другой фреймбуфер. Пример:
+`/usr/share/examples/framebuffer.cpp`.
+
+### 3. Пиксельные мониторы
+
+`cc::gfx::target("top")` (C++) или `gfx.setTarget("top")` (Lua) — все функции рисования идут на монитор, а не на
+экран (`target("")` — обратно). Тот же монитор — файл `/dev/fb1` (`/dev/fb2`... для следующих, по мере появления)
+с настройками в `/sys/class/graphics/fbN` (там же `device` — имя периферии). Методы монитора как периферии — в
+[разделе 2](02-blocks.md).
+
+## Мышь и клавиатура
+
+### Событиями
+
+С флагом `CC_PROC_INPUT` программа получает `key`, `key_up`, `char`, `paste`, `mouse_click`, `mouse_drag`,
+`mouse_up`, `mouse_scroll`. В графическом режиме координаты мыши — **пиксели фреймбуфера** (окно пересчитывает их
+с учётом масштаба), в текстовом — клетки. Пиксельный монитор: `pixel_monitor_touch` (имя, x, y).
+
+### Файлами `/dev/input` — как в Linux
+
+| Устройство | Формат |
+|---|---|
+| `/dev/input/event0` | клавиатура: `struct input_event` (24 байта: время, тип, код, значение), коды `KEY_*` Linux; значение 1 — нажата, 0 — отпущена, 2 — повтор |
+| `/dev/input/event1` | мышь: `EV_ABS ABS_X/ABS_Y` (пиксели в графике, клетки от 0 в тексте), `EV_KEY BTN_LEFT/RIGHT/MIDDLE`, `EV_REL REL_WHEEL` |
+| `/dev/input/mice` | мышь в формате PS/2: пакеты по 3 байта (кнопки, dx, dy) |
+| `/dev/input/event2`... | сенсорные экраны пиксельных мониторов и мониторов CC, нумеруются по мере подключения (какой есть какой — в `/sys/class/input/eventN`). Касание — `ABS_X`, `ABS_Y`, `BTN_TOUCH 1`, `SYN_REPORT`, затем `BTN_TOUCH 0`, `SYN_REPORT`. Координаты — пиксель монитора от 0 в его текущем разрешении (у мониторов CC — клетка от 0) |
+
+Какое устройство чему соответствует, видно в `/sys/class/input/eventN`: `name` (`keyboard`, `mouse`,
+`pixel_monitor`, `monitor`), а у сенсорных ещё `device` (имя периферии), `fb` (его `/dev/fbN`) и `size` (`Ш,В` —
+диапазон `ABS_X` и `ABS_Y`). `evtest -l` выводит список устройств:
+
+```
+$ evtest -l
+/dev/input/event0	keyboard
+/dev/input/event1	mouse
+/dev/input/event2	pixel_monitor top (fb1, 128x64)
+```
+
+**Предмет-клавиатура** (см. [раздел 2](02-blocks.md)) добавляет устройство, пока игрок печатает с неё:
+`/dev/input/eventN` с `name` `keyboard` и `player`. Её клавиши приходят как выше и заодно идут в терминал и в
+`event0`, как ввод в окне; мышь (она же поворачивает голову игрока) относительная, как у настоящего компьютера: `EV_REL REL_X/REL_Y`,
+`REL_WHEEL`, `BTN_LEFT/RIGHT/MIDDLE`. Программе на переднем плане (Lua, `cc::pullEvent`) то же приходит событиями:
+`mouse_relative` (dx, dy), `mouse_button` (кнопка 0 левая / 1 правая / 2 средняя, нажата), `mouse_wheel` (шаги,
+вверх — плюс); все программы видят `keyboard_attach` и `keyboard_detach` (устройство, игрок).
+
+```lua
+-- поворачивать черепашку мышью, глядя на неё
+while true do
+  local _, dx = os.pullEvent("mouse_relative")
+  if dx > 20 then turtle.turnRight() elseif dx < -20 then turtle.turnLeft() end
+end
+```
+
+Пиксельный монитор целиком, без событий CC: картинку пишем в `/dev/fb1`, касания читаем из `/dev/input/event2`.
+
+```c
+#include <fcntl.h>
+#include <linux/input.h>
+#include <stdio.h>
+#include <unistd.h>
+
+int main(void) {
+    int fd = open("/dev/input/event2", O_RDONLY);
+    struct input_event e;
+    int x = 0, y = 0;
+    while (read(fd, &e, sizeof e) == sizeof e) {
+        if (e.type == EV_ABS && e.code == ABS_X) x = e.value;
+        if (e.type == EV_ABS && e.code == ABS_Y) y = e.value;
+        if (e.type == EV_KEY && e.code == BTN_TOUCH && e.value == 1) printf("touch %d %d\n", x, y);
+    }
+}
+```
+
+Готовая программа — `/usr/share/examples/touchpaint.cpp`: рисовалка для пиксельного монитора только на
+`/dev/fbN` и `/dev/input/eventN`. Внизу палитра из 16 цветов и ячейка с крестом (очистить), касание в остальной
+части рисует точку, координаты каждого касания печатаются в терминал.
+
+```sh
+cd /tmp && c++ /usr/share/examples/touchpaint.cpp -o touchpaint && ./touchpaint      # первый пиксельный монитор
+./touchpaint top                                                                     # монитор с именем top
+```
+
+Касание в Minecraft мгновенное (правый клик), поэтому нажатие и отпускание приходят сразу одно за другим;
+перетаскивания у монитора нет. Пока устройство никто не открыл, касания на него ничего не тратят.
+
+Заголовок `<linux/input.h>` есть в системе, так что код под Linux собирается без изменений. Все читатели получают
+все события, а клавиши по-прежнему уходят и в терминал (как в Linux без EVIOCGRAB). Пока программа держит мышь
+открытой, окно передаёт и простое движение курсора (до 20 раз в секунду); когда мышь никто не читает, движение не
+передаётся.
+
+`evtest /dev/input/event0` (или `event1`, `event2`, `mice`) печатает события, `evtest -l` — список устройств. Пример: `/usr/share/examples/paint.cpp` —
+рисовалка только на `/dev/fb0` и `/dev/input`: левая кнопка рисует, правая стирает, 1–9 — цвет, Esc — выход.

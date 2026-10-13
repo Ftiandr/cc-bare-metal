@@ -1,0 +1,25 @@
+SH - the shell
+
+  cmd args > file    redirect output (>> appends, 2> errors, &> both, 2>&1)
+  cmd < file         read input from a file
+  a | b              pipe output of a into b (both run at once; a compound
+                     command like ( ... ) or { ... } in a pipeline is a child shell)
+  a && b, a || b     run b if a succeeded / failed
+  cmd &              run in the background; 'jobs', 'fg %N', 'wait'
+  $VAR ${VAR:-def}   variables; $? last status, $$ pid, $! last background pid, $1.. arguments
+  $(cmd)             command output (a subshell: sees all variables and
+                     functions, its own changes stay inside)
+  *.c  ?  [abc]      file name patterns
+
+  if cmd; then ...; elif cmd; then ...; else ...; fi
+  while cmd; do ...; done      until cmd; do ...; done
+  for x in a b c; do ...; done
+  case $x in a*|b*) ...;; [0-9]*) ...;; *) ...;; esac
+  name() { ...; }              functions; 'return N'
+
+Built-ins: cd pwd echo export unset set alias unalias source . type read exit
+return jobs fg wait history break continue shift true false help exec
+
+Line editing: arrows, Home/End, Up/Down history, Tab completion,
+Ctrl+A/E start/end, Ctrl+U/K kill, Ctrl+W delete word, Ctrl+L clear.
+Startup files: /etc/profile and ~/.profile (login), ~/.shrc (interactive).

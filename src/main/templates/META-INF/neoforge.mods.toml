@@ -1,0 +1,45 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/Ftiandr/cc-bare-metal/issues"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Ftiandr"
+displayURL="https://github.com/Ftiandr/cc-bare-metal"
+credits="Built on CC: Tweaked (textures recoloured from it), Chicory, LLVM/clang (YoWASP) and wasi-sdk."
+description='''
+WebAssembly computers for CC: Tweaked: a Unix-like system with a shell and
+about 175 commands, users and sudo, an in-game C/C++ compiler (clang),
+Linux-style devices (/dev/fb0, /dev/input, /dev/periph), graphics and pixel
+monitors, networking over modems with ssh, a turtle and a pocket computer whose
+upgrades go into slots, a keyboard to type from the world, HTTP through CC's own
+API, and every peripheral of CC and its addons. Also adds Unicode text to CC's
+own computers, monitors and printers without changing what programs see.
+'''
+
+[[mixins]]
+config="ccbaremetal.mixins.json"
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="computercraft"
+    type="required"
+    versionRange="[${cc_version},)"
+    ordering="AFTER"
+    side="BOTH"

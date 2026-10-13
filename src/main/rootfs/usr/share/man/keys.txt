@@ -1,0 +1,44 @@
+KEYS(1)                    Computer screen controls
+
+The screen takes most of the game window. In text mode the terminal is resized to
+fit it; programs get a "term_resize" event (tty_size returns the new size).
+
+Font size
+    Ctrl+'+' / Ctrl+'-'      bigger / smaller letters (also the A- A+ buttons)
+    Ctrl+mouse wheel         same
+    Ctrl+0                   automatic size for the window
+
+Selection and clipboard
+    drag                     select text (Shift+drag if the program uses
+                             the mouse, e.g. CraftOS)
+    double / triple click    select a word / a line
+    Ctrl+Shift+A             select everything, including history
+    Ctrl+Shift+C             copy (as in Linux terminals; also Ctrl+Ins)
+    Ctrl+Shift+V             paste (also Ctrl+V, Shift+Insert, middle click)
+    Ctrl+C                   copies when text is selected; otherwise it is
+                             sent to the program (interrupt)
+    The line above the frame confirms: "Copied N characters". Shortcuts work in any
+    keyboard layout.
+    right click              copy the selection, or paste if there is none
+
+Scrollback (last 2000 lines)
+    mouse wheel              scroll (Shift+wheel if the program uses the mouse)
+    Shift+PageUp/PageDown    scroll by a page
+    Shift+Home / Shift+End   oldest line / back to the live screen
+    any key                  back to the live screen
+    clear                    clears the screen and the history (clear -x keeps it)
+
+Full-screen programs (edit, ...) use the alternate screen (ESC[?1049h): the
+shell's screen comes back when they exit, and the wheel sends arrow keys.
+Programs can ask for mouse events with ESC[?1000h (1002: also drags; 1003:
+any motion, sent only when the cell changes; 1006: SGR encoding); then
+selecting text in the window needs Shift+drag. Shift/Ctrl/Alt with arrows,
+Home/End, PgUp/PgDn arrive as xterm sequences (ESC[1;2A ...); after ESC[?1h
+unmodified arrows arrive as ESC O A. F1-F12 stay with Minecraft.
+Programs can put text on your clipboard with OSC 52 (edit's Ctrl+C does).
+
+Power
+    sidebar buttons          power (turn on / shut down), reboot, terminate,
+                             bigger / smaller font (hover for a hint)
+    Enter (when off)         turn on
+    hold Ctrl+T / Ctrl+R / Ctrl+S for a second: terminate / reboot / shut down

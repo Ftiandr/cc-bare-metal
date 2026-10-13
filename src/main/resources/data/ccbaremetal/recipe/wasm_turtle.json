@@ -1,0 +1,3 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["ADA","ATA","ARA"],
+ "key":{"A":{"tag":"c:gems/amethyst"},"D":{"tag":"c:gems/diamond"},"T":{"item":"computercraft:turtle_advanced"},"R":{"tag":"c:storage_blocks/redstone"}},
+ "result":{"id":"ccbaremetal:wasm_turtle","count":1}}

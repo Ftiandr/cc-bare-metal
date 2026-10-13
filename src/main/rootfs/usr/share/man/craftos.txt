@@ -1,0 +1,13 @@
+LUA - CC Lua programs
+
+  lua               the CC Lua REPL
+  lua FILE [ARGS]   run a CC program (term, fs, os, peripheral, textutils,
+                    parallel, settings, rednet, shell, require ... all work)
+  craftos           CraftOS: CC's shell, multishell and programs
+
+Lua sees the same files as everything else (fs.list("/") shows /bin, /home
+...). Extra APIs: gfx (see 'man gfx') and wasm:
+  wasm.run(path, args...)              run a program, returns exit status
+  wasm.exec(path, {args}, {stdin=s})   capture: status, stdout, stderr
+  wasm.list()  wasm.kill(pid)
+Text may be UTF-8: Cyrillic and other scripts display correctly.

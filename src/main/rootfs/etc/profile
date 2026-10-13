@@ -1,0 +1,9 @@
+# /etc/profile - read by login shells.
+export PATH=/usr/local/bin:/bin:/usr/bin:/sbin
+export EDITOR=edit
+export PAGER=more
+alias ll='ls -l'
+alias la='ls -a'
+alias l='ls -1'
+alias ..='cd ..'
+cd ~
