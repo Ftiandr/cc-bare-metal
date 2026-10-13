@@ -7,12 +7,12 @@
 | [1. Быстрый старт и окно компьютера](01-quick-start.md) | первый запуск, управление окном, копирование и вставка, горячие клавиши |
 | [2. Блоки, крафт, мониторы](02-blocks.md) | WASM-компьютер, карманный компьютер и черепашка (модули в слотах), пиксельный монитор, клавиатура, рецепты, стороны, сохранение данных |
 | [3. Система](03-system.md) | файловая система, оболочка `sh`, все команды, `edit`, `pkg`, интернет (`curl`, `wget`), `man`, Lua и CraftOS |
-| [4. Программирование на C++](04-cpp.md) | компилятор, `<baremetal.hpp>`, процессы, события, терминал, примеры |
-| [5. Графика и ввод](05-graphics-input.md) | режимы экрана, `cc::gfx`, `/dev/fb0`, `/sys/class/graphics`, `/dev/input`, пиксельные мониторы |
-| [6. Периферия CC: Tweaked и аддонов](06-peripherals.md) | периферия любых модов, объекты, API аддонов, `/dev/periph`, rednet, gps, редстоун |
+| [4. Программирование на C++](04-cpp.md) | компилятор, потоки (`-pthread`), SDL2, дополнения POSIX, `<baremetal.hpp>`, процессы, события, терминал, примеры |
+| [5. Графика и ввод](05-graphics-input.md) | режимы экрана (палитра и полный цвет), `cc::gfx`, `/dev/fb0`, `/sys/class/graphics`, `/dev/input`, пиксельные мониторы |
+| [6. Периферия CC: Tweaked и аддонов](06-peripherals.md) | периферия любых модов, объекты, API аддонов, `/dev/periph`, динамики (смешивание, OSS), rednet, gps, редстоун |
 | [7. Unicode для CC: Tweaked](07-unicode.md) | кириллица на обычных компьютерах, мониторах и принтерах CC |
 | [8. Настройки](08-config.md) | конфиги сервера и клиента |
 | [9. Устройство и сборка](09-development.md) | сборка из исходников, устройство, тесты, скрипты |
 
 Справка внутри игры: `man intro` (обзор), `man sh`, `man cc`, `man baremetal` (C++ API), `man gfx`, `man dev`,
-`man periph`, `man pkg`, `man lua`, `man craftos`, `man keys`, `man turtle`, `man http`. Примеры программ: `/usr/share/examples`.
+`man periph`, `man pkg`, `man sdl`, `man lua`, `man craftos`, `man keys`, `man turtle`, `man http`. Примеры программ: `/usr/share/examples`.

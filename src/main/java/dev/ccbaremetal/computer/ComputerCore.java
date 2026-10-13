@@ -169,7 +169,7 @@ public final class ComputerCore implements Machine.Host {
             BareMetalConfig.get(BareMetalConfig.MAX_PROCESSES),
             BareMetalConfig.get(BareMetalConfig.DISK_SPACE_MB) * 1024L * 1024L,
             BareMetalConfig.get(BareMetalConfig.TMP_SPACE_MB) * 1024L * 1024L,
-            termCols, termRows, 1280, 800);
+            termCols, termRows, 1280, 800, BareMetalConfig.get(BareMetalConfig.THREADS_PER_PROCESS));
         machine = new Machine(computerId, storage, SystemImage.get(), config, this);
         machine.loadLabel(label);
         synchronized (RUNNING) {
@@ -232,6 +232,20 @@ public final class ComputerCore implements Machine.Host {
     public MinecraftServer server() {
         var level = owner.level();
         return level == null ? null : level.getServer();
+    }
+
+    private static final net.minecraft.resources.ResourceLocation SPEAKER_STOP =
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("computercraft", "speaker_stop");
+
+    @Override
+    public boolean canStopSpeakers() {
+        var server = server();
+        if (server == null) return false;
+        var players = server.getPlayerList().getPlayers();
+        if (players.isEmpty()) return false; // nobody hears it: no lag to drop
+        // CC sends the stop message to every player; a connection without CC's channel (a test's mock player) throws
+        for (var player : players) if (player.connection == null || !player.connection.hasChannel(SPEAKER_STOP)) return false;
+        return true;
     }
 
     @Override

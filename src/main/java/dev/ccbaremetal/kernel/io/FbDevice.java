@@ -11,8 +11,9 @@ import java.nio.ByteBuffer;
 
 /**
  * /dev/fb0: the screen's framebuffer as a file, like Linux fbdev (WASI has no mmap, so it is read and written).
- * One byte per pixel, the palette index; byte offset = y * width + x (the stride is the width). The current mode is
- * in /sys/class/graphics/fb0 (virtual_size, bits_per_pixel, stride), and can be changed there or with fbset.
+ * Pixels as the mode stores them: one byte (the palette index) in indexed modes, RGB565 (2 bytes) or XRGB8888 (4
+ * bytes: blue, green, red, unused) in direct colour; byte offset = (y * width + x) * bytes per pixel. The current mode
+ * is in /sys/class/graphics/fb0 (virtual_size, bits_per_pixel, stride), and can be changed there or with fbset.
  *
  * <p>Writing shows the framebuffer on the screen. After the writing program exits the picture stays until a key
  * is pressed (like an image left on a Linux framebuffer console).
@@ -48,8 +49,7 @@ public final class FbDevice extends OpenFile {
     }
 
     private long size() {
-        var fb = framebuffer.get();
-        return (long) fb.width() * fb.height();
+        return framebuffer.get().rawSize();
     }
 
     @Override
@@ -70,18 +70,9 @@ public final class FbDevice extends OpenFile {
     public int pread(ByteBuffer dst, long pos) throws FsException {
         checkRevoked();
         var fb = framebuffer.get();
-        int w = fb.width(), h = fb.height();
-        var total = (long) w * h;
-        if (pos >= total) return 0;
-        var n = (int) Math.min(dst.remaining(), total - pos);
-        var done = 0;
-        while (done < n) {
-            var p = pos + done;
-            int y = (int) (p / w), x = (int) (p % w);
-            var run = Math.min(n - done, w - x);
-            dst.put(fb.read(x, y, run, 1));
-            done += run;
-        }
+        var buf = new byte[(int) Math.min(dst.remaining(), Math.max(0, fb.rawSize() - pos))];
+        var n = fb.readRaw(pos, buf, 0, buf.length);
+        dst.put(buf, 0, n);
         return n;
     }
 
@@ -89,8 +80,7 @@ public final class FbDevice extends OpenFile {
     public int pwrite(ByteBuffer src, long pos) throws FsException {
         checkRevoked();
         var fb = framebuffer.get();
-        int w = fb.width(), h = fb.height();
-        var total = (long) w * h;
+        var total = fb.rawSize();
         if (pos >= total) {
             if (src.hasRemaining()) throw new FsException(Errno.ENOSPC);
             return 0;
@@ -98,14 +88,7 @@ public final class FbDevice extends OpenFile {
         var n = (int) Math.min(src.remaining(), total - pos);
         var bytes = new byte[n];
         src.get(bytes);
-        var done = 0;
-        while (done < n) {
-            var p = pos + done;
-            int y = (int) (p / w), x = (int) (p % w);
-            var run = Math.min(n - done, w - x);
-            fb.blit(bytes, done, run, x, y, run, 1);
-            done += run;
-        }
+        fb.writeRaw(pos, bytes, 0, n);
         if (changed != null) {
             changed.run();
         } else {

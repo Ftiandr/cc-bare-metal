@@ -60,7 +60,10 @@ public abstract class Process {
     private volatile boolean killed;
     private volatile int killCode;
     private Thread thread;
-    private byte[] pending = new byte[0];
+    /** Threads the program started (pthreads), besides the main one. */
+    private final java.util.Set<Thread> threads = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** Results waiting to be taken (cc_take), per thread. */
+    private final Map<Thread, byte[]> pending = new java.util.concurrent.ConcurrentHashMap<>();
 
     protected Process(Machine machine, int pid, int ppid, int pgid, String name, List<String> argv, Map<String, String> env) {
         this.machine = machine;
@@ -185,6 +188,44 @@ public abstract class Process {
         onKill();
         var t = thread;
         if (t != null) t.interrupt();
+        for (var other : threads) other.interrupt();
+    }
+
+    /** Runs body on a new thread of this process (a pthread); it counts as the process for system calls. */
+    protected Thread startThread(String suffix, Runnable body) {
+        var t = new Thread(null, () -> {
+            CURRENT.set(this);
+            try {
+                body.run();
+            } finally {
+                threads.remove(Thread.currentThread());
+                pending.remove(Thread.currentThread());
+                CURRENT.remove();
+            }
+        }, "ccbaremetal-" + machine.id() + "-" + pid + "-" + name + "-" + suffix, STACK_SIZE);
+        t.setDaemon(true);
+        t.setPriority(Thread.NORM_PRIORITY - 1);
+        threads.add(t);
+        t.start();
+        return t;
+    }
+
+    public int threadCount() {
+        return 1 + threads.size();
+    }
+
+    /** Ends the other threads (the process is exiting) and waits a little for them. */
+    protected void stopThreads() {
+        for (var t : threads) t.interrupt();
+        var deadline = System.currentTimeMillis() + 2000;
+        for (var t : threads) {
+            try {
+                t.join(Math.max(1, deadline - System.currentTimeMillis()));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 
     protected void onKill() {
@@ -205,14 +246,13 @@ public abstract class Process {
         machine.notifier().signal();
     }
 
-    public synchronized void setPending(byte[] data) {
-        pending = data;
+    public void setPending(byte[] data) {
+        pending.put(Thread.currentThread(), data);
     }
 
-    public synchronized byte[] takePending() {
-        var data = pending;
-        pending = new byte[0];
-        return data;
+    public byte[] takePending() {
+        var data = pending.remove(Thread.currentThread());
+        return data == null ? new byte[0] : data;
     }
 
     public Thread thread() {

@@ -70,7 +70,7 @@ in `edit` does this); "Copied N characters" then appears above the border.
 Files and folders can be dragged into the computer window straight from the file manager (as in CC: Tweaked):
 they land in the current folder of the shell (or of the running program), with the permissions of whoever uses the
 computer. If such files already exist, the window asks whether to replace them. The limit per drop is
-`upload_max_kb` in the [configuration](08-config.md) (16 MB). Programs (WebAssembly modules and `#!` scripts) arrive
+`upload_max_kb` in the [configuration](08-config.md) (64 MB). Programs (WebAssembly modules and `#!` scripts) arrive
 executable, so a folder with a program built on a PC runs at once.
 
 ## Logging in

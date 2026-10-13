@@ -802,7 +802,7 @@ bool sysWrite(const std::string &name, const std::string &value) {
 
 int cmdFbset(Args &a) {
     const char *text = "fbset                      show the mode\n"
-                       "       fbset WxH[xBPP]            set the resolution (and depth: 1 2 4 8 bits per pixel)\n"
+                       "       fbset WxH[xBPP]            set the resolution (and depth: 1 2 4 8 bits per pixel, 16 or 32 true colour)\n"
                        "       fbset -g W H | -depth BPP  same, Linux style\n"
                        "       fbset auto                 back to the default size (fills the text area)\n"
                        "       fbset graphics | text      show the framebuffer / the text screen\n"
@@ -846,16 +846,22 @@ int cmdFbset(Args &a) {
     auto size = sysRead("virtual_size"), bpp = sysRead("bits_per_pixel"), max = sysRead("max_size");
     int w = 0, h = 0, b = std::atoi(bpp.c_str());
     std::sscanf(size.c_str(), "%d,%d", &w, &h);
+    std::string colours = b > 8 ? (b == 16 ? "true colour, RGB565" : "true colour, XRGB8888") : std::to_string(1 << b) + " colours";
     if (fbDevice == "fb0") {
-        std::printf("mode:     %dx%d, %d bpp (%d colours), screen shows %s\n", w, h, b, 1 << b, sysRead("display").c_str());
+        std::printf("mode:     %dx%d, %d bpp (%s), screen shows %s\n", w, h, b, colours.c_str(), sysRead("display").c_str());
         std::printf("default:  %s (a common resolution filling the text area; 'fbset auto')\n", sysRead("default_size").c_str());
     } else {
-        std::printf("monitor:  %s (pixel monitor), %dx%d, %d bpp (%d colours)\n", sysRead("device").c_str(), w, h, b, 1 << b);
+        std::printf("monitor:  %s (pixel monitor), %dx%d, %d bpp (%s)\n", sysRead("device").c_str(), w, h, b, colours.c_str());
     }
-    std::printf("max:      %s; depths 1/2/4/8 bpp, 24-bit palette\n", max.c_str());
-    std::printf("device:   /dev/%s - one byte (palette index) per pixel, offset = y * %d + x\n", fbDevice.c_str(), w);
-    std::printf("network:  only changed rectangles are sent, %d bits per pixel, compressed (full frame %d KiB raw)\n", b,
-                w * h * b / 8 / 1024);
+    std::printf("max:      %s; depths 1/2/4/8 bpp (24-bit palette), 16/32 bpp (true colour)\n", max.c_str());
+    int bytes = b > 8 ? b / 8 : 1;
+    if (b > 8)
+        std::printf("device:   /dev/%s - %d bytes per pixel (%s), offset = (y * %d + x) * %d\n", fbDevice.c_str(), bytes,
+                    b == 16 ? "RGB565, little-endian" : "blue, green, red, unused", w, bytes);
+    else
+        std::printf("device:   /dev/%s - one byte (palette index) per pixel, offset = y * %d + x\n", fbDevice.c_str(), w);
+    std::printf("network:  only changed rectangles are sent, %d bits per pixel, compressed (full frame %d KiB raw)\n",
+                b == 32 ? 24 : b, w * h * (b == 32 ? 24 : b) / 8 / 1024);
     return 0;
 }
 

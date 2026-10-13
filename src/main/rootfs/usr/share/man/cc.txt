@@ -19,15 +19,33 @@ Options are the usual gcc/clang ones: -o -c -S -E -O0..-O3 -Os -g
 steps) --version. C++ exceptions are on (-fno-exceptions turns them off);
 RTTI, templates, the whole standard library (containers, <algorithm>,
 <string>, <iostream>, <fstream>, <filesystem>, <chrono>, <regex>,
-<format>...) work. There are no threads.
+<format>...) work.
+
+Threads: -pthread (pthreads, std::thread, atomics, _Thread_local). The
+program is built for wasm32-wasip1-threads and its threads run in parallel
+on the server's processors (at most threads_per_process of them, 8 by
+default; std::thread::hardware_concurrency() tells). exit() in any thread
+ends the program.
+
+  cc -pthread -O2 work.c -o work
+  c++ -pthread game.cpp -o game
+
+SDL2 (zlib license) is installed: see 'man sdl'.
+  cc game.c $(sdl2-config --cflags --libs) -o game
 
 Binutils: ar ranlib nm objdump objcopy strip size c++filt addr2line ld.
 
 POSIX additions (WASI has none of these; libbaremetal provides them): <termios.h>
 (tcgetattr/tcsetattr/cfmakeraw; ICANON ECHO ISIG ICRNL VMIN VTIME work: with
-ICRNL kept Enter reads as \n, after cfmakeraw as \r), ioctl(TIOCGWINSZ), <sys/wait.h> (waitpid),
-<spawn.h> (posix_spawn, posix_spawnp), system(), popen()/pclose(). There is
-no fork(): start programs with posix_spawn or system.
+ICRNL kept Enter reads as \n, after cfmakeraw as \r), ioctl (TIOCGWINSZ, and
+device controls such as OSS on /dev/dspN, <sys/soundcard.h>), <sys/wait.h>
+(waitpid), <spawn.h> (posix_spawn, posix_spawnp), system(), popen()/pclose(),
+pipe, dup, dup2, getpid, getppid, kill, setsid, process groups, exec*
+(runs the program, waits, exits with its status), mkstemp, mkdtemp,
+tmpfile, tempnam, sigaction, sigprocmask and signal sets (SIGINT/SIGTERM end
+the program unless SIG_IGN; no asynchronous handlers), statvfs, getrlimit,
+ttyname, getlogin, getpass, sysconf(_SC_NPROCESSORS_ONLN). fork() fails with
+ENOSYS: start programs with posix_spawn, system or exec.
 
 Headers: <baremetal.hpp> is the C++ interface of this system (graphics,
 peripherals of any mod, events, Lua, processes, terminal) and <baremetal.h>
@@ -40,5 +58,9 @@ outside the game with wasi-sdk: clang++ --target=wasm32-wasip1
 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false (the runtime supports
 the current WebAssembly exception handling, not the legacy one).
 
-Files: /usr/lib/llvm (clang, lld), /usr/lib/wasi (libc, libc++),
+With threads, outside the game: --target=wasm32-wasip1-threads -pthread
+-Wl,--import-memory,--export-memory,--max-memory=4294967296.
+
+Files: /usr/lib/llvm (clang, lld), /usr/lib/wasi (libc, libc++; also for
+wasm32-wasip1-threads), /usr/lib/wasm32-wasip1-threads (libbaremetal, SDL2),
 /usr/include (ccbaremetal headers), /usr/local/include, /usr/local/lib.

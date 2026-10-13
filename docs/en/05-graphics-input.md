@@ -4,8 +4,10 @@
 
 Every WASM computer has two modes: a text terminal and a graphics framebuffer.
 
-- The framebuffer is indexed: **1, 2, 4 or 8 bits per pixel** (2, 4, 16 or 256 colours), with a 24-bit palette.
+- Indexed colour: **1, 2, 4 or 8 bits per pixel** (2, 4, 16 or 256 colours), with a 24-bit palette.
   8 bits: CC's colours (0–15), a 6×6×6 cube (16–231), greys (232–255).
+- True colour: **16 bits** (RGB565) or **32 bits** (XRGB8888, sent as 24): no palette, colours are `0xRRGGBB`
+  wherever a colour is passed (`cc::gfx::fill(x, y, w, h, 0xFF8000)`). SDL programs use 32 bits.
 - Size up to **1280×800**. By default it is the largest standard resolution (16:9, 16:10, 4:3, 3:2: 480×270,
   512×288, 512×320, 640×360, 640×480, 800×450, 960×540, 1280×720...) that fits the window's text area, with 256
   colours. Until a mode is set explicitly, the size follows the window size; `fbset auto` goes back to that.
@@ -39,8 +41,9 @@ In Lua: `gfx.setMode(w, h, bpp[, grey])`, `gfx.textMode()`, `gfx.getDefaultSize(
 
 ### 2. `/dev/fb0`, as on Linux
 
-The screen is a file: **one byte (colour index) per pixel**, offset = `y * width + x`. Any program and any utility
-can draw:
+The screen is a file: **one byte (colour index) per pixel**, offset = `y * width + x`; in true colour 2 bytes
+(RGB565, little-endian) or 4 (blue, green, red, unused), offset = `(y * width + x) * bytes`, as Linux framebuffers.
+Any program and any utility can draw:
 
 ```sh
 fbset 320x200x8                                # mode (or through /sys)
@@ -54,8 +57,8 @@ The image stays after the program exits; any key brings the text screen back.
 | File | Value |
 |---|---|
 | `virtual_size` | `512,288`; writing `320,200` changes the resolution, `auto` restores the default |
-| `bits_per_pixel` | `8` (1, 2, 4 or 8) |
-| `stride` | bytes per line of `/dev/fb0` (= width) |
+| `bits_per_pixel` | `8` (1, 2, 4 or 8; 16 or 32 for true colour) |
+| `stride` | bytes per line of `/dev/fb0` (width × bytes per pixel) |
 | `palette` | lines of `INDEX RRGGBB`; writing such lines changes colours |
 | `display` | `text` or `graphics`; writing switches the screen |
 | `default_size`, `max_size`, `name` | read-only |

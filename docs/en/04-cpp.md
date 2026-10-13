@@ -17,17 +17,50 @@ c++ -v ...                                         # show the steps
 - Every driver (`cc`, `gcc`, `c++`...) handles both C and C++ by file extension and links libc++, like gcc.
 - Exceptions are on (`-fno-exceptions` turns them off); RTTI, templates and the whole standard library: containers,
   `<algorithm>`, `<string>`, `<iostream>`, `<fstream>`, `<filesystem>`, `<chrono>`, `<regex>`, `<format>`...
-- No threads.
+- Threads: `-pthread` (POSIX threads, `std::thread`, atomics), see below.
 - Speed: a C++ file with `<iostream>` compiles in 10–20 s, a C file in about a second; the first run after the
   server starts takes another ~3 s to load the compiler.
 - Binutils: `ar ranlib nm objdump objcopy strip size c++filt addr2line ld`.
 - Paths: `/usr/include` and `/usr/local/include` (headers), `/usr/lib` and `/usr/local/lib` (libraries).
 - The compiler's memory is limited by the `compiler_memory_mb` setting (1024 MB by default), ordinary programs by
-  `memory_per_process_mb` (64 MB).
+  `memory_per_process_mb` (256 MB).
 
 Programs can also be built outside the game with wasi-sdk:
 `clang++ --target=wasm32-wasip1 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false` (the runtime only supports
 current WebAssembly exception handling).
+
+## Threads
+
+```sh
+cc -pthread -O2 worker.c -o worker        # pthread_create, mutexes, condition variables, _Thread_local, atomics
+c++ -pthread game.cpp -o game             # std::thread, std::mutex, std::async...
+```
+
+`-pthread` builds for `wasm32-wasip1-threads`: the program's memory is shared, and every thread runs on its own
+thread of the server, in parallel (WASI's thread-spawn). `std::thread::hardware_concurrency()` and
+`sysconf(_SC_NPROCESSORS_ONLN)` give the server's processors, at most `threads_per_process` (8 by default):
+the limit of threads one program may have. `exit()` from any thread, or the end of `main`, ends them all; `kill`
+and Ctrl+C too. Scheduling priorities are accepted and have no effect. Outside the game:
+`--target=wasm32-wasip1-threads -pthread -Wl,--import-memory,--export-memory,--max-memory=4294967296`.
+
+## SDL2
+
+The system has [SDL 2.32](https://www.libsdl.org) (zlib license), so games and players written for SDL build as they
+are:
+
+```sh
+cc game.c $(sdl2-config --cflags --libs) -o game      # = -I/usr/include/SDL2 -pthread -lSDL2
+```
+
+- Video: a window is the whole screen in 32-bit true colour (or a pixel monitor: `SDL_CCBAREMETAL_FB=fb1`), at most
+  the screen's size; SDL's software renderer (`SDL_Renderer`, textures, YUV) and window surfaces work.
+- Input: keys from `/dev/input/event0`, the mouse from `event1`, text (`SDL_TEXTINPUT`) from the terminal in any
+  keyboard layout; Ctrl+C becomes `SDL_QUIT`.
+- Audio: SDL's OSS driver on `/dev/dsp` (the first speaker; `AUDIODEV=/dev/dsp1` for another), any format and rate
+  (the kernel converts).
+- Threads, timers, `SDL_GetTicks`, `SDL_Delay`: yes. No joysticks, haptics, OpenGL or shared objects.
+
+SDL needs threads (audio and timers run on their own), so `-lSDL2` turns `-pthread` on by itself.
 
 ## System headers
 
@@ -42,12 +75,18 @@ adds, so Linux programs build unchanged:
 | Header | What is there |
 |---|---|
 | `<termios.h>` | `tcgetattr`, `tcsetattr`, `cfmakeraw`, `tcgetwinsize`: ICANON, ECHO, ISIG, ICRNL (Enter arrives as `\n`, after `cfmakeraw` as `\r`), VMIN/VTIME (reads with a timeout and polling) |
-| `<sys/ioctl.h>` | `ioctl(fd, TIOCGWINSZ, &ws)`: terminal size |
+| `<sys/ioctl.h>` | `ioctl(fd, TIOCGWINSZ, &ws)`: terminal size; device controls such as OSS on `/dev/dspN` |
+| `<sys/soundcard.h>` | OSS: `SNDCTL_DSP_SETFMT`, `SPEED`, `CHANNELS`, `GETODELAY`, `RESET`, `SYNC`... (see [section 6](06-peripherals.md)) |
 | `<sys/wait.h>` | `waitpid`, `wait`, `WEXITSTATUS`... |
 | `<spawn.h>` | `posix_spawn`, `posix_spawnp` (redirecting 0–2 with file actions) |
-| `<stdlib.h>`, `<stdio.h>` | `system()`, `popen()` / `pclose()` (through `sh -c`) |
+| `<stdlib.h>`, `<stdio.h>` | `system()`, `popen()` / `pclose()` (through `sh -c`); `mkstemp`, `mkdtemp`, `mkostemp`, `tmpfile`, `tempnam`, `tmpnam` |
+| `<unistd.h>` | `pipe`, `pipe2`, `dup`, `dup2`, `getpid`, `getppid`, `setsid`, process groups, `execv`/`execvp`/`execl`... (run the program, wait, exit with its status), `ttyname`, `getlogin`, `getpass`; `sysconf(_SC_NPROCESSORS_ONLN)` |
+| `<signal.h>` | `sigaction`, `sigprocmask`, signal sets, `kill`, `killpg`: dispositions are kept, SIGINT/SIGTERM end the process or are ignored with `SIG_IGN` (no asynchronous handlers) |
+| `<sys/statvfs.h>`, `<sys/resource.h>` | `statvfs` (free space of a disk), `getrlimit` / `setrlimit` |
+| `<pthread.h>`, `<sched.h>` | with `-pthread`: POSIX threads, plus scheduling parameters and `pthread_sigmask` |
 
-`fork()` is impossible in WebAssembly: programs are started with `posix_spawn`, `system` or `cc::spawn`.
+`fork()` is impossible in WebAssembly (it fails with `ENOSYS`): programs are started with `posix_spawn`, `system`,
+`exec*` or `cc::spawn`.
 
 ## The `<baremetal.hpp>` API
 

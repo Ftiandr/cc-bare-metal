@@ -155,6 +155,8 @@ public final class Syscalls {
                 return -e.errno();
             }
         });
+        // ioctl on a device file (OSS controls of /dev/dspN...): 0 or an errno
+        m.fn("fd_ioctl", "iii", (i, mem, a) -> p.fds.file((int) a[0]).ioctl((int) a[1], mem, (int) a[2]));
         m.fn("dup2", "ii", (i, mem, a) -> {
             p.fds.dup2((int) a[0], (int) a[1]);
             return 0;
@@ -569,8 +571,9 @@ public final class Syscalls {
             var stride = (int) a[5];
             if (w <= 0 || h <= 0) return 0;
             if (stride < w) return Errno.EINVAL;
-            var data = Host.bytes(mem, a[4], (long) stride * (h - 1) + w);
-            fb(p).blit(data, 0, stride, (int) a[0], (int) a[1], w, h);
+            var fb = fb(p);
+            var data = Host.bytes(mem, a[4], ((long) stride * (h - 1) + w) * fb.bytesPerPixel());
+            fb.blit(data, 0, stride, (int) a[0], (int) a[1], w, h);
             return changed(p);
         });
         m.fn("gfx_blit_key", "iiiiiii", (i, mem, a) -> {
@@ -579,8 +582,9 @@ public final class Syscalls {
             var stride = (int) a[5];
             if (w <= 0 || h <= 0) return 0;
             if (stride < w) return Errno.EINVAL;
-            var data = Host.bytes(mem, a[4], (long) stride * (h - 1) + w);
-            fb(p).blitKeyed(data, 0, stride, (int) a[0], (int) a[1], w, h, (int) a[6]);
+            var fb = fb(p);
+            var data = Host.bytes(mem, a[4], ((long) stride * (h - 1) + w) * fb.bytesPerPixel());
+            fb.blitKeyed(data, 0, stride, (int) a[0], (int) a[1], w, h, (int) a[6]);
             return changed(p);
         });
         m.fn("gfx_read", "iiiiii", (i, mem, a) -> {
@@ -588,8 +592,10 @@ public final class Syscalls {
             var h = (int) a[3];
             var stride = (int) a[5];
             if (w <= 0 || h <= 0) return 0;
-            var data = fb(p).read((int) a[0], (int) a[1], w, h);
-            for (var y = 0; y < h; y++) mem.write((int) a[4] + y * stride, data, y * w, w);
+            var fb = fb(p);
+            var bpb = fb.bytesPerPixel();
+            var data = fb.read((int) a[0], (int) a[1], w, h);
+            for (var y = 0; y < h; y++) mem.write((int) a[4] + y * stride * bpb, data, y * w * bpb, w * bpb);
             return 0;
         });
         m.fn("gfx_fill", "iiiii", (i, mem, a) -> {
@@ -752,6 +758,8 @@ public final class Syscalls {
         });
 
         // ---- System ----
+        // processors a program may use: the server's, at most the threads one process may have
+        m.fn("cpu_count", ":i", (i, mem, a) -> Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().maxThreads())));
         m.fn("sys_info", ":i", (i, mem, a) -> {
             var info = new LinkedHashMap<String, Object>();
             info.put("id", machine.id());
@@ -768,6 +776,7 @@ public final class Syscalls {
             info.put("screen_height", size[1]);
             info.put("max_screen_width", machine.framebuffer().maxWidth());
             info.put("max_screen_height", machine.framebuffer().maxHeight());
+            info.put("cpus", Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().maxThreads())));
             return pending(p, Json.write(info, p.objects::encode));
         });
         m.fn("sys_set_label", "ii", (i, mem, a) -> {

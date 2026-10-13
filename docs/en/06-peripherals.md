@@ -137,12 +137,24 @@ as devices appear (the lowest free one: the first pixel monitor is `fb1`, `fb0` 
 
 |---|---|
 | `/dev/fb1`, `/dev/fb2`... | pixel monitors, like `/dev/fb0` |
-| `/dev/dsp0`... | speakers: raw audio, signed 8 bit, 48 kHz, mono (`head -c 48000 /dev/urandom > /dev/dsp0`) |
+| `/dev/dsp0`... | speakers: raw audio, signed 8 bit, 48 kHz, mono by default (`head -c 48000 /dev/urandom > /dev/dsp0`); see below |
 | `/dev/lp0`... | printers: text is printed with pages on close (`cat notes.txt > /dev/lp0`); `ink`, `paper` in `/sys/class/printer/lp0` |
 | `/dev/monitor0`... | CC monitors as terminals: wrapping, ANSI colours, cursor (`printf '\033[31mred\n' > /dev/monitor0`) |
 | `wlan0`, `eth0`... | modems as network interfaces (no node, as on Linux): `/sys/class/net/<name>`, `ip link` |
 
 Redstone: `/sys/class/redstone/<side>/input` (read) and `output` (0–15, write).
+
+**Speakers** work like OSS on Linux. Every program that opens `/dev/dspN` gets its own stream, and the kernel mixes
+the streams of a speaker, so a game's music and a player can sound at once. A stream queues up to a second (writes
+wait for room, or fail with `EAGAIN` when non-blocking); the kernel feeds the speaker from it, keeping CC's
+players about half a second ahead, and when a speaker runs dry it is restarted, so the sound never lags behind for
+good (CC's players would otherwise keep the delay). Closing waits until the stream's audio is handed over; a killed
+program falls silent at once. With `ioctl` (`<sys/soundcard.h>`) a stream may take another format: `SNDCTL_DSP_SETFMT`
+(`AFMT_S8`, `AFMT_U8`, `AFMT_S16_LE`), `SNDCTL_DSP_CHANNELS` (1 or 2, mixed down), `SNDCTL_DSP_SPEED` (4000–96000 Hz,
+resampled to 48 kHz); `SNDCTL_DSP_GETODELAY` tells how many bytes are written but not heard yet (for sync with
+video), `SNDCTL_DSP_RESET` drops them, `SNDCTL_DSP_SYNC` waits. `/sys/class/sound/dsp0/streams` shows how many
+streams are open. SDL's audio uses exactly this. The `speaker_audio_empty` events of the driver's own audio are
+not delivered to programs.
 
 While the files are not open, none of this costs anything: names and methods are only looked up on access.
 

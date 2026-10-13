@@ -17,6 +17,10 @@ curl -sSL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-34/
 make -C userland                # rebuild the system (C++) into src/main/rootfs
 ```
 
+`make -C userland` also builds libbaremetal for programs with threads (`wasm32-wasip1-threads`) and SDL2
+(`userland/sdl/build.sh`: SDL 2.32.10 is fetched from GitHub at a fixed commit and built with our platform config
+`sdl/SDL_config.h` and video driver `sdl/SDL_ccbmvideo.c`).
+
 The first build downloads clang (YoWASP, npm) and translates it to JVM bytecode: ~4 minutes and 4 GB of memory;
 after that the step is skipped until clang changes.
 
@@ -29,9 +33,9 @@ after that the step is skipped until clang changes.
 | `src/main/java/dev/ccbaremetal/pocket`, `turtle` | pocket computer and turtle: modules in slots, the turtle API, `ITurtleAccess`/`IPocketAccess` for CC and addon upgrades |
 | `src/main/java/dev/ccbaremetal/monitor`, `client`, `network` | pixel monitor, windows, rendering, networking |
 | `src/main/java/dev/ccbaremetal/unicode` | Unicode for CC computers (`Utf8Layout`, `CcText`, mixins in `ccbaremetal.mixins.json`) |
-| `userland/` | the system in C++: `sh`, `coreutils`, `textutils`, `ccutils`, `userutils` (users, sudo, lock), `ssh`, `edit`, `pkg`, `periph`, `init`, the `cc` compiler driver, the `libbaremetal` library (`include/baremetal.hpp`, `baremetal.h`, `linux/input.h`) |
+| `userland/` | the system in C++: `sh`, `coreutils`, `textutils`, `ccutils`, `userutils` (users, sudo, lock), `ssh`, `edit`, `pkg`, `periph`, `init`, the `cc` compiler driver, the `libbaremetal` library (`include/baremetal.hpp`, `baremetal.h`, `linux/input.h`; POSIX additions in `lib/compat.cpp` and `lib/posix.cpp` with the header wrappers in `include/`), SDL2's port (`sdl/`) |
 | `src/main/rootfs` | the built system (in git); Gradle packs it into the jar as `ccbaremetal/system.zip` |
-| `userland/build-toolchain.sh`, `src/jittool` | the in-game compiler: clang 22 + wasi-sdk sysroot with libc++; at build time clang is translated to JVM bytecode and slimmed down (the full module would take ~2 GB of memory) |
+| `userland/build-toolchain.sh`, `src/jittool` | the in-game compiler: clang 22 + wasi-sdk sysroot with libc++ for `wasm32-wasip1` and `wasm32-wasip1-threads`; at build time clang is translated to JVM bytecode and slimmed down (the full module would take ~2 GB of memory) |
 | `scripts/` | texture and font generators |
 
 Key decisions:
@@ -42,6 +46,15 @@ Key decisions:
   `-fwasm-exceptions -mllvm -wasm-use-legacy-eh=false`.
 - WASI programs have no current folder; the system's programs take it from `$PWD` (`crt_cwd.o`), and for clang and
   binutils the `cc` driver makes paths absolute.
+- Threads (`kernel/proc/WasmProcess`): a module built with `-pthread` imports a shared memory (or defines one, made
+  once); `wasi::thread-spawn` instantiates the module again on that memory and runs `wasi_thread_start` on a new
+  Java thread of the process. Chicory compiles atomics and implements `memory.atomic.wait`/`notify`; exit from any
+  thread kills the process; per-thread pending results; `threads_per_process` limits them.
+- Sound (`kernel/dev/drivers/SpeakerDriver`): a queue per open file, one mixer thread for every speaker
+  (`playAudio` with the players' buffer modelled as CC does, `stop()` when one ran dry, only when every player can
+  receive CC's message), OSS ioctls through the `fd_ioctl` system call (format conversion and resampling per stream).
+- Graphics: `Framebuffer` stores 1 byte per pixel in indexed modes, RGB565 or XRGB8888 in true colour (`put`/`get`
+  per mode); the network gets 2 or 3 bytes per true-colour pixel, the client keeps an RGB array.
 - Addon compatibility is generic: peripheral methods are built by CC's generator, objects in results become handles
   (`kernel/proc/ObjectTable`, the `obj_call` call), addon APIs are created per machine (`kernel/periph/AddonApis`).
 - Devices follow Linux's model (`kernel/dev`): the `DeviceTree` holds the peripheral bus, the drivers (one file each

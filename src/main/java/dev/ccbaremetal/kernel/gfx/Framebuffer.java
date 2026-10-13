@@ -5,8 +5,10 @@ import dev.ccbaremetal.kernel.tty.Terminal;
 import java.util.Arrays;
 
 /**
- * An indexed-colour framebuffer. Pixels are stored one byte each, but only {@code bpp} bits are significant, and
- * that is all that goes over the network: 1 bpp (2 colours), 2 bpp (4), 4 bpp (16) or 8 bpp (256).
+ * A framebuffer. Indexed modes store one byte per pixel, of which only {@code bpp} bits are significant (and that is
+ * all that goes over the network): 1 bpp (2 colours), 2 bpp (4), 4 bpp (16) or 8 bpp (256), with a palette. Direct
+ * colour modes have no palette, colours are 0xRRGGBB: 16 bpp stores RGB565 (2 bytes, little-endian), 32 bpp
+ * XRGB8888 (4 bytes: blue, green, red, unused), as Linux framebuffers do; 32 bpp goes over the network as 3 bytes.
  *
  * <p>Thread-safe. Writers mark a dirty rectangle; the sync code takes it with {@link #takeDirty()}.
  */
@@ -66,7 +68,21 @@ public final class Framebuffer {
     }
 
     public static boolean validBpp(int bpp) {
-        return bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8;
+        return bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8 || bpp == 16 || bpp == 32;
+    }
+
+    /** Bytes one pixel takes in memory (and in blit/read data): 1 in indexed modes, 2 or 4 in direct colour. */
+    public static int bytesPerPixel(int bpp) {
+        return bpp <= 8 ? 1 : bpp / 8;
+    }
+
+    public synchronized int bytesPerPixel() {
+        return bytesPerPixel(bpp);
+    }
+
+    /** Direct colour (16 or 32 bpp): colours are RGB, there is no palette. */
+    public synchronized boolean direct() {
+        return bpp > 8;
     }
 
     public synchronized boolean setMode(int w, int h, int newBpp, int preset) {
@@ -74,7 +90,7 @@ public final class Framebuffer {
         width = w;
         height = h;
         bpp = newBpp;
-        pixels = new byte[w * h];
+        pixels = new byte[w * h * bytesPerPixel(newBpp)];
         defaultPalette(palette, newBpp, preset);
         modeDirty = true;
         paletteDirty = true;
@@ -85,6 +101,7 @@ public final class Framebuffer {
     /** Fill {@code out} with the default palette for a colour depth. */
     public static void defaultPalette(int[] out, int bpp, int preset) {
         Arrays.fill(out, 0);
+        if (bpp > 8) bpp = 8; // direct colour: the palette is not used; keep the 8 bpp one for a later switch
         var colours = 1 << bpp;
         if (preset == PRESET_GRAY || bpp <= 2) {
             for (var i = 0; i < colours; i++) {
@@ -133,7 +150,55 @@ public final class Framebuffer {
     }
 
     private int mask() {
-        return (1 << bpp) - 1;
+        return bpp >= 8 ? 0xFF : (1 << bpp) - 1;
+    }
+
+    /** Stores colour (an index, or 0xRRGGBB in direct colour) at pixel number i. */
+    private void put(int i, int colour) {
+        switch (bpp) {
+            case 16 -> {
+                int v = ((colour >> 8) & 0xF800) | ((colour >> 5) & 0x07E0) | ((colour >> 3) & 0x001F);
+                pixels[i * 2] = (byte) v;
+                pixels[i * 2 + 1] = (byte) (v >> 8);
+            }
+            case 32 -> {
+                pixels[i * 4] = (byte) colour;
+                pixels[i * 4 + 1] = (byte) (colour >> 8);
+                pixels[i * 4 + 2] = (byte) (colour >> 16);
+                pixels[i * 4 + 3] = 0;
+            }
+            default -> pixels[i] = (byte) (colour & mask());
+        }
+    }
+
+    /** The colour at pixel number i: an index, or 0xRRGGBB in direct colour. */
+    private int get(int i) {
+        return switch (bpp) {
+            case 16 -> {
+                int v = (pixels[i * 2] & 0xFF) | (pixels[i * 2 + 1] & 0xFF) << 8;
+                int r = (v >> 11) & 31, g = (v >> 5) & 63, b = v & 31;
+                yield (r << 3 | r >> 2) << 16 | (g << 2 | g >> 4) << 8 | (b << 3 | b >> 2);
+            }
+            case 32 -> (pixels[i * 4 + 2] & 0xFF) << 16 | (pixels[i * 4 + 1] & 0xFF) << 8 | (pixels[i * 4] & 0xFF);
+            default -> pixels[i] & 0xFF;
+        };
+    }
+
+    /** Fills pixels [from, to) with colour. */
+    private void putRun(int from, int to, int colour) {
+        if (bpp <= 8) {
+            Arrays.fill(pixels, from, to, (byte) (colour & mask()));
+            return;
+        }
+        if (to <= from) return;
+        put(from, colour);
+        int bpb = bytesPerPixel(bpp);
+        // double the filled part until the run is full
+        for (int done = 1; done < to - from; ) {
+            int n = Math.min(done, to - from - done);
+            System.arraycopy(pixels, from * bpb, pixels, (from + done) * bpb, n * bpb);
+            done += n;
+        }
     }
 
     private void markAll() {
@@ -179,19 +244,19 @@ public final class Framebuffer {
     }
 
     public synchronized void clear(int colour) {
-        Arrays.fill(pixels, (byte) (colour & mask()));
+        putRun(0, width * height, colour);
         markAll();
     }
 
     public synchronized void setPixel(int x, int y, int colour) {
         if (x < 0 || y < 0 || x >= width || y >= height) return;
-        pixels[y * width + x] = (byte) (colour & mask());
+        put(y * width + x, colour);
         mark(x, y, x + 1, y + 1);
     }
 
     public synchronized int getPixel(int x, int y) {
         if (x < 0 || y < 0 || x >= width || y >= height) return -1;
-        return pixels[y * width + x] & 0xFF;
+        return get(y * width + x);
     }
 
     public synchronized void fill(int x, int y, int w, int h, int colour) {
@@ -200,12 +265,14 @@ public final class Framebuffer {
         var x1 = Math.min(width, x + w);
         var y1 = Math.min(height, y + h);
         if (x1 <= x0 || y1 <= y0) return;
-        var c = (byte) (colour & mask());
-        for (var yy = y0; yy < y1; yy++) Arrays.fill(pixels, yy * width + x0, yy * width + x1, c);
+        for (var yy = y0; yy < y1; yy++) putRun(yy * width + x0, yy * width + x1, colour);
         mark(x0, y0, x1, y1);
     }
 
-    /** Copy a block of 8-bit indices into the framebuffer, clipped. */
+    /**
+     * Copy a block of pixels in this mode's format (a byte per pixel in indexed modes, 2 or 4 bytes in direct colour)
+     * into the framebuffer, clipped. stride: pixels per source row.
+     */
     public synchronized void blit(byte[] src, int srcOffset, int stride, int x, int y, int w, int h) {
         var x0 = Math.max(0, x);
         var y0 = Math.max(0, y);
@@ -213,19 +280,21 @@ public final class Framebuffer {
         var y1 = Math.min(height, y + h);
         if (x1 <= x0 || y1 <= y0) return;
         var m = mask();
+        var bpb = bytesPerPixel(bpp);
         for (var yy = y0; yy < y1; yy++) {
-            var s = srcOffset + (yy - y) * stride + (x0 - x);
-            var d = yy * width + x0;
+            var s = srcOffset + ((yy - y) * stride + (x0 - x)) * bpb;
+            var d = (yy * width + x0) * bpb;
             if (m == 0xFF) {
-                System.arraycopy(src, s, pixels, d, x1 - x0);
+                System.arraycopy(src, s, pixels, d, (x1 - x0) * bpb);
             } else {
                 for (var i = 0; i < x1 - x0; i++) pixels[d + i] = (byte) (src[s + i] & m);
             }
+            if (bpp == 32) for (var i = 0; i < x1 - x0; i++) pixels[d + i * 4 + 3] = 0;
         }
         mark(x0, y0, x1, y1);
     }
 
-    /** Blit with a transparent colour index that is skipped. */
+    /** Blit with a transparent colour (an index, or 0xRRGGBB in direct colour) that is skipped. */
     public synchronized void blitKeyed(byte[] src, int srcOffset, int stride, int x, int y, int w, int h, int key) {
         var x0 = Math.max(0, x);
         var y0 = Math.max(0, y);
@@ -233,27 +302,66 @@ public final class Framebuffer {
         var y1 = Math.min(height, y + h);
         if (x1 <= x0 || y1 <= y0) return;
         var m = mask();
+        var bpb = bytesPerPixel(bpp);
         for (var yy = y0; yy < y1; yy++) {
-            var s = srcOffset + (yy - y) * stride + (x0 - x);
+            var s = srcOffset + ((yy - y) * stride + (x0 - x)) * bpb;
             var d = yy * width + x0;
             for (var i = 0; i < x1 - x0; i++) {
-                var v = src[s + i] & 0xFF;
-                if (v != key) pixels[d + i] = (byte) (v & m);
+                int v = switch (bpp) {
+                    case 16 -> {
+                        int raw = (src[s + i * 2] & 0xFF) | (src[s + i * 2 + 1] & 0xFF) << 8;
+                        int r = (raw >> 11) & 31, g = (raw >> 5) & 63, b = raw & 31;
+                        yield (r << 3 | r >> 2) << 16 | (g << 2 | g >> 4) << 8 | (b << 3 | b >> 2);
+                    }
+                    case 32 -> (src[s + i * 4 + 2] & 0xFF) << 16 | (src[s + i * 4 + 1] & 0xFF) << 8 | (src[s + i * 4] & 0xFF);
+                    default -> src[s + i] & 0xFF;
+                };
+                if (v != (bpp > 8 ? key & 0xFFFFFF : key)) put(d + i, bpp > 8 ? v : v & m);
             }
         }
         mark(x0, y0, x1, y1);
     }
 
+    /** A block of pixels in this mode's format (see {@link #blit}); outside the image reads as zero. */
     public synchronized byte[] read(int x, int y, int w, int h) {
-        var out = new byte[Math.max(0, w) * Math.max(0, h)];
+        var bpb = bytesPerPixel(bpp);
+        var out = new byte[Math.max(0, w) * Math.max(0, h) * bpb];
         for (var yy = 0; yy < h; yy++) {
-            for (var xx = 0; xx < w; xx++) {
-                var px = x + xx;
-                var py = y + yy;
-                if (px >= 0 && py >= 0 && px < width && py < height) out[yy * w + xx] = pixels[py * width + px];
-            }
+            var py = y + yy;
+            if (py < 0 || py >= height) continue;
+            var px0 = Math.max(0, x);
+            var px1 = Math.min(width, x + w);
+            if (px1 <= px0) continue;
+            System.arraycopy(pixels, (py * width + px0) * bpb, out, (yy * w + (px0 - x)) * bpb, (px1 - px0) * bpb);
         }
         return out;
+    }
+
+    /** Bytes of pixel memory (/dev/fbN's size): width * height * bytesPerPixel. */
+    public synchronized long rawSize() {
+        return pixels.length;
+    }
+
+    /** Pixel memory as /dev/fbN reads it, from byte offset off. Returns how many bytes were copied. */
+    public synchronized int readRaw(long off, byte[] dst, int dstOff, int n) {
+        if (off >= pixels.length) return 0;
+        n = (int) Math.min(n, pixels.length - off);
+        System.arraycopy(pixels, (int) off, dst, dstOff, n);
+        return n;
+    }
+
+    /** Writes pixel memory at byte offset off (in this mode's format). Returns how many bytes were written. */
+    public synchronized int writeRaw(long off, byte[] src, int srcOff, int n) {
+        if (off >= pixels.length) return 0;
+        n = (int) Math.min(n, pixels.length - off);
+        System.arraycopy(src, srcOff, pixels, (int) off, n);
+        if (bpp < 8) {
+            var m = (byte) mask();
+            for (var i = 0; i < n; i++) pixels[(int) off + i] &= m;
+        }
+        var rowBytes = (long) width * bytesPerPixel(bpp);
+        mark(0, (int) (off / rowBytes), width, (int) Math.min(height, (off + n - 1) / rowBytes + 1));
+        return n;
     }
 
     public synchronized void line(int x0, int y0, int x1, int y1, int colour) {
@@ -262,10 +370,9 @@ public final class Framebuffer {
         var sx = x0 < x1 ? 1 : -1;
         var sy = y0 < y1 ? 1 : -1;
         var err = dx + dy;
-        var c = (byte) (colour & mask());
         var steps = 0;
         while (steps++ < 1 << 16) {
-            if (x0 >= 0 && y0 >= 0 && x0 < width && y0 < height) pixels[y0 * width + x0] = c;
+            if (x0 >= 0 && y0 >= 0 && x0 < width && y0 < height) put(y0 * width + x0, colour);
             if (x0 == x1 && y0 == y1) break;
             var e2 = 2 * err;
             if (e2 >= dy) {
@@ -312,7 +419,6 @@ public final class Framebuffer {
     public synchronized int text(int x, int y, String text, int fg, int bg, int scale) {
         var font = TermFont.get();
         scale = Math.max(1, Math.min(8, scale));
-        var m = mask();
         for (var i = 0; i < text.length(); ) {
             var cp = text.codePointAt(i);
             i += Character.charCount(cp);
@@ -321,13 +427,13 @@ public final class Framebuffer {
                 for (var gx = 0; gx < TermFont.WIDTH; gx++) {
                     var on = TermFont.pixel(glyph, gx, gy);
                     if (!on && bg < 0) continue;
-                    var c = (byte) ((on ? fg : bg) & m);
+                    var c = on ? fg : bg;
                     for (var sy = 0; sy < scale; sy++) {
                         var py = y + gy * scale + sy;
                         if (py < 0 || py >= height) continue;
                         for (var sx = 0; sx < scale; sx++) {
                             var px = x + gx * scale + sx;
-                            if (px >= 0 && px < width) pixels[py * width + px] = c;
+                            if (px >= 0 && px < width) put(py * width + px, c);
                         }
                     }
                 }
@@ -345,12 +451,13 @@ public final class Framebuffer {
             clear(colour);
             return;
         }
+        var bpb = bytesPerPixel(bpp);
         if (dy > 0) {
-            System.arraycopy(pixels, dy * width, pixels, 0, (height - dy) * width);
-            Arrays.fill(pixels, (height - dy) * width, height * width, (byte) (colour & mask()));
+            System.arraycopy(pixels, dy * width * bpb, pixels, 0, (height - dy) * width * bpb);
+            putRun((height - dy) * width, height * width, colour);
         } else {
-            System.arraycopy(pixels, 0, pixels, -dy * width, (height + dy) * width);
-            Arrays.fill(pixels, 0, -dy * width, (byte) (colour & mask()));
+            System.arraycopy(pixels, 0, pixels, -dy * width * bpb, (height + dy) * width * bpb);
+            putRun(0, -dy * width, colour);
         }
         markAll();
     }
@@ -390,6 +497,26 @@ public final class Framebuffer {
     }
 
     private Update pack(int x, int y, int w, int h, boolean withPalette) {
+        if (bpp > 8) {
+            // direct colour: RGB565 as stored (2 bytes), XRGB8888 as R, G, B (3 bytes)
+            var out = bpp == 16 ? 2 : 3;
+            var packed = new byte[w * h * out];
+            for (var yy = 0; yy < h; yy++) {
+                var base = (y + yy) * width + x;
+                if (bpp == 16) {
+                    System.arraycopy(pixels, base * 2, packed, yy * w * 2, w * 2);
+                    continue;
+                }
+                for (var xx = 0; xx < w; xx++) {
+                    var s = (base + xx) * 4;
+                    var o = (yy * w + xx) * 3;
+                    packed[o] = pixels[s + 2];
+                    packed[o + 1] = pixels[s + 1];
+                    packed[o + 2] = pixels[s];
+                }
+            }
+            return new Update(width, height, bpp, withPalette ? new int[0] : null, x, y, w, h, packed);
+        }
         var perByte = 8 / bpp;
         var rowBytes = (w + perByte - 1) / perByte;
         var packed = new byte[rowBytes * h];
@@ -409,6 +536,19 @@ public final class Framebuffer {
         int[] pal = null;
         if (withPalette) pal = Arrays.copyOf(palette, 1 << bpp);
         return new Update(width, height, bpp, pal, x, y, w, h, packed);
+    }
+
+    /** Inverse of the direct-colour packing in {@link #pack}: 0xRRGGBB per pixel. Used by the client. */
+    public static void unpackRgb(byte[] packed, int bpp, int w, int h, int[] out) {
+        for (var i = 0; i < w * h; i++) {
+            if (bpp == 16) {
+                int v = (packed[i * 2] & 0xFF) | (packed[i * 2 + 1] & 0xFF) << 8;
+                int r = (v >> 11) & 31, g = (v >> 5) & 63, b = v & 31;
+                out[i] = (r << 3 | r >> 2) << 16 | (g << 2 | g >> 4) << 8 | (b << 3 | b >> 2);
+            } else {
+                out[i] = (packed[i * 3] & 0xFF) << 16 | (packed[i * 3 + 1] & 0xFF) << 8 | (packed[i * 3 + 2] & 0xFF);
+            }
+        }
     }
 
     /** Inverse of the packing in {@link #pack}: used by the client. */

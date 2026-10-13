@@ -99,17 +99,25 @@ game window with Shift (the editor gets the mouse).
 ```sh
 pkg search [text]        # available packages
 pkg install NAME         # install (with dependencies) into /usr/local
-pkg install FILE.ccpkg   # from a file
-pkg remove NAME  |  pkg list  |  pkg files NAME
+pkg install FILE.ccpkg   # from a file;  pkg install URL  downloads it
+pkg remove NAME  |  pkg list  |  pkg files NAME  |  pkg info NAME
 pkg build DIR [OUT]      # build a package from DIR/manifest.json and DIR/files/
-pkg update               # newer versions of the installed packages
+pkg update               # refresh the network repositories, list newer versions of what is installed
 pkg upgrade [NAME...]    # install them
+pkg repo [list|add X|remove X]   # repositories: folders or URLs (/etc/pkg/repos)
+pkg index DIR            # write DIR/index.json: DIR becomes a network repository once served over HTTP
 ```
 
-Repositories: `/usr/share/pkg` (built in, for example `demos` with `gfxdemo`), `/disk*/pkg` on floppy disks and
-folders listed in `/etc/pkg/repos`. `manifest.json`:
+Repositories: `/usr/share/pkg` (built in, for example `demos` with `gfxdemo`), `/disk*/pkg` on floppy disks, and what
+`/etc/pkg/repos` lists (`sudo pkg repo add ...`): folders of `.ccpkg` files, or URLs of a folder with `index.json`
+(made by `pkg index`). `pkg update` downloads the indexes of the network repositories; their packages are
+downloaded when installed and checked against the index (size and SHA-256). `manifest.json`:
 `{"name": "...", "version": "1.0", "description": "...", "depends": []}`. A package dropped onto the computer as a
 `.ccpkg` file installs with `pkg install FILE.ccpkg`.
+
+Installing is careful: the package must be whole and its files must fit on the disk (checked first), every file is
+written next to the old one (`FILE.pkgnew`) and they replace the installed files only when all are written. A full
+disk or a broken download leaves the installed version as it was.
 
 Every installed package remembers where it came from: a repository, a file or a URL. `pkg update` looks there for a
 newer version (versions compare by parts: 1.10 is newer than 1.9) and `pkg upgrade` installs it, removing the files

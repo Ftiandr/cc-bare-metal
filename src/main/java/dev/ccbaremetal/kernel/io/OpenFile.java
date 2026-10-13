@@ -57,6 +57,14 @@ public abstract class OpenFile {
     }
 
     /** Whether a read would not block right now. */
+    /**
+     * A device control request (ioctl): arg is the guest address of its argument. 0 or an errno; files without
+     * controls are not terminals.
+     */
+    public int ioctl(int request, com.dylibso.chicory.runtime.Memory memory, int arg) throws FsException, InterruptedException {
+        throw new FsException(dev.ccbaremetal.kernel.Errno.ENOTTY);
+    }
+
     public boolean readReady() {
         return true;
     }

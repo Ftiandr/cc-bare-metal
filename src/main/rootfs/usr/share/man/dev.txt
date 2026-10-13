@@ -56,9 +56,18 @@ DRIVERS: COMMON PERIPHERALS, LINUX STYLE
   /dev/fb1, /dev/fb2 ...   pixel monitors, like /dev/fb0; settings in
                            /sys/class/graphics/fbN (device = peripheral name);
                            fbset -fb /dev/fb1 320x200x8
-  /dev/dsp0 ...            speakers (class sound): signed 8-bit PCM, 48 kHz mono
-                           (head -c 48000 /dev/urandom > /dev/dsp0: one second
-                           of noise); writing waits while the buffer is full
+  /dev/dsp0 ...            speakers (class sound), OSS style: each open is a
+                           stream (up to a second queued; writing waits for
+                           room), the kernel mixes the streams of a speaker and
+                           keeps CC's players fed without lag. Default format:
+                           signed 8-bit PCM, 48 kHz mono (head -c 48000
+                           /dev/urandom > /dev/dsp0: one second of noise);
+                           ioctl (<sys/soundcard.h>): SNDCTL_DSP_SETFMT (S8 U8
+                           S16_LE), CHANNELS (1 or 2), SPEED (4000-96000, any is
+                           resampled), GETODELAY (bytes not heard yet), RESET,
+                           SYNC. A killed program falls silent at once; close
+                           waits until its audio is handed over.
+                           /sys/class/sound/dspN/streams: open streams
   /dev/lp0 ...             printers: text is printed, with pages, on close
                            (cat notes.txt > /dev/lp0); /sys/class/printer/lp0/
                            ink, paper: levels

@@ -4,13 +4,14 @@
 
 | Key | Default | What it sets |
 |---|---|---|
-| `computer.memory_per_process_mb` | 64 | memory of one WebAssembly process, MB |
+| `computer.memory_per_process_mb` | 256 | memory of one WebAssembly process, MB |
 | `computer.compiler_memory_mb` | 1024 | memory of the clang compiler, MB (only taken while it runs) |
 | `computer.max_processes` | 64 | processes per computer |
-| `computer.disk_space_mb` | 16 | computer disk, MB |
-| `computer.tmp_space_mb` | 8 | in-memory `/tmp`, MB |
-| `computer.max_sync_kb_per_tick` | 64 | soft limit of compressed screen data per player per tick, KB |
-| `computer.upload_max_kb` | 16384 | how much a player may drop onto a computer window at once, KB (0 disables it) |
+| `computer.threads_per_process` | 8 | threads of one program (`-pthread`): how many server cores it may keep busy |
+| `computer.disk_space_mb` | 64 | computer disk, MB |
+| `computer.tmp_space_mb` | 16 | in-memory `/tmp`, MB |
+| `computer.max_sync_kb_per_tick` | 128 | soft limit of compressed screen data per player per tick, KB |
+| `computer.upload_max_kb` | 65536 | how much a player may drop onto a computer window at once, KB (0 disables it) |
 | `monitor.max_width`, `monitor.max_height` | 8, 6 | maximum pixel monitor size in blocks |
 | `monitor.pixels_per_block` | 64 | default resolution of a monitor block |
 

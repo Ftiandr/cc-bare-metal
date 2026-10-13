@@ -10,6 +10,7 @@ components below, under their own licenses (full texts in [LICENSES](LICENSES)).
 | [YoWASP clang](https://github.com/YoWASP/clang) — the WebAssembly build of LLVM used above | `ccbaremetal/toolchain.zip` | ISC (packaging), LLVM's license for LLVM |
 | [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) sysroot: [wasi-libc](https://github.com/WebAssembly/wasi-libc) (with parts of musl) | `ccbaremetal/toolchain.zip`; linked into the programs in `ccbaremetal/system.zip` | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT; musl parts MIT (Copyright © 2005-2020 Rich Felker, et al.) |
 | wasi-sdk sysroot: libc++, libc++abi, libunwind (LLVM) | `ccbaremetal/toolchain.zip`; linked into the programs in `ccbaremetal/system.zip` | Apache-2.0 WITH LLVM-exception |
+| [SDL 2.32](https://www.libsdl.org) — media library for ported programs (built with our video driver, `userland/sdl/`) | `ccbaremetal/system.zip`: `/usr/include/SDL2`, `/usr/lib/wasm32-wasip1-threads/libSDL2.a` | Zlib (Copyright © 1997-2025 Sam Lantinga) |
 | [NeoForged MDK](https://github.com/NeoForged/MDK) — project template (Gradle files) | source only | MIT ([TEMPLATE_LICENSE.txt](TEMPLATE_LICENSE.txt)) |
 
 ## Textures derived from CC: Tweaked

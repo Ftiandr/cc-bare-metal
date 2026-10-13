@@ -17,6 +17,10 @@ curl -sSL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-34/
 make -C userland                # пересобрать систему (C++) в src/main/rootfs
 ```
 
+`make -C userland` также собирает libbaremetal для программ с потоками (`wasm32-wasip1-threads`) и SDL2
+(`userland/sdl/build.sh`: SDL 2.32.10 скачивается с GitHub на зафиксированном коммите и собирается с нашим
+конфигом платформы `sdl/SDL_config.h` и видеодрайвером `sdl/SDL_ccbmvideo.c`).
+
 Первая сборка скачивает clang (YoWASP, npm) и переводит его в байткод JVM: ~4 минуты и 4 ГБ памяти; дальше этот
 шаг пропускается, пока clang не меняется.
 
@@ -29,9 +33,9 @@ make -C userland                # пересобрать систему (C++) в
 | `src/main/java/dev/ccbaremetal/pocket`, `turtle` | карманный компьютер и черепашка: модули в слотах, API черепашки, `ITurtleAccess`/`IPocketAccess` для улучшений CC и аддонов |
 | `src/main/java/dev/ccbaremetal/monitor`, `client`, `network` | пиксельный монитор, окна, рендер, сеть |
 | `src/main/java/dev/ccbaremetal/unicode` | Unicode для компьютеров CC (`Utf8Layout`, `CcText`, миксины в `ccbaremetal.mixins.json`) |
-| `userland/` | система на C++: `sh`, `coreutils`, `textutils`, `ccutils`, `userutils` (пользователи, sudo, lock), `ssh`, `edit`, `pkg`, `periph`, `init`, драйвер компилятора `cc`, библиотека `libbaremetal` (`include/baremetal.hpp`, `baremetal.h`, `linux/input.h`) |
+| `userland/` | система на C++: `sh`, `coreutils`, `textutils`, `ccutils`, `userutils` (пользователи, sudo, lock), `ssh`, `edit`, `pkg`, `periph`, `init`, драйвер компилятора `cc`, библиотека `libbaremetal` (`include/baremetal.hpp`, `baremetal.h`, `linux/input.h`; дополнения POSIX в `lib/compat.cpp` и `lib/posix.cpp` с обёртками заголовков в `include/`), порт SDL2 (`sdl/`) |
 | `src/main/rootfs` | собранная система (в git); Gradle упаковывает её в jar как `ccbaremetal/system.zip` |
-| `userland/build-toolchain.sh`, `src/jittool` | компилятор для игры: clang 22 + sysroot wasi-sdk с libc++; на этапе сборки clang переводится в байткод JVM и «облегчается» (полный модуль занял бы ~2 ГБ памяти) |
+| `userland/build-toolchain.sh`, `src/jittool` | компилятор для игры: clang 22 + sysroot wasi-sdk с libc++ для `wasm32-wasip1` и `wasm32-wasip1-threads`; на этапе сборки clang переводится в байткод JVM и «облегчается» (полный модуль занял бы ~2 ГБ памяти) |
 | `scripts/` | генераторы текстур и шрифта |
 
 Ключевые решения:
@@ -42,6 +46,17 @@ make -C userland                # пересобрать систему (C++) в
   собирается с `-fwasm-exceptions -mllvm -wasm-use-legacy-eh=false`.
 - У программ WASI нет текущей папки; программы системы получают её из `$PWD` (`crt_cwd.o`), а для clang и binutils
   пути делает абсолютными драйвер `cc`.
+- Потоки (`kernel/proc/WasmProcess`): модуль, собранный с `-pthread`, импортирует общую память (или объявляет её —
+  тогда она создаётся один раз); `wasi::thread-spawn` создаёт ещё один экземпляр модуля на этой памяти и запускает
+  `wasi_thread_start` в новом потоке Java того же процесса. Chicory компилирует атомарные операции и умеет
+  `memory.atomic.wait`/`notify`; выход из любого потока завершает процесс; отложенные результаты — свои у каждого
+  потока; число потоков ограничивает `threads_per_process`.
+- Звук (`kernel/dev/drivers/SpeakerDriver`): очередь на каждый открытый файл, один поток-микшер на все динамики
+  (`playAudio` с моделью буфера игроков, как у CC, `stop()` для опустевшего динамика — только если сообщение CC
+  могут получить все игроки), ioctl OSS через системный вызов `fd_ioctl` (преобразование формата и частоты для
+  каждого потока).
+- Графика: `Framebuffer` хранит 1 байт на пиксель в режимах с палитрой, RGB565 или XRGB8888 в полном цвете
+  (`put`/`get` по режиму); по сети идёт 2 или 3 байта на пиксель полного цвета, клиент держит массив RGB.
 - Совместимость с аддонами общая: методы периферии строит генератор CC, объекты из ответов становятся дескрипторами
   (`kernel/proc/ObjectTable`, вызов `obj_call`), API аддонов создаются для каждой машины
   (`kernel/periph/AddonApis`).

@@ -207,6 +207,24 @@ public final class Peripherals {
         }
     }
 
+    /**
+     * {@link #callDirect} for a peripheral on a side or on a wired network (through its modem's callRemote): for the
+     * kernel's own drivers (the speaker driver feeds speakers from its own thread).
+     */
+    public Object[] callKernel(String name, String method, Object... args) throws PeripheralException {
+        if (attached.containsKey(name)) return callDirect(name, method, args);
+        for (var modem : modems()) {
+            var present = callDirect(modem.name(), "isPresentRemote", name);
+            if (present.length == 0 || !Boolean.TRUE.equals(present[0])) continue;
+            var forwarded = new Object[args.length + 2];
+            forwarded[0] = name;
+            forwarded[1] = method;
+            System.arraycopy(args, 0, forwarded, 2, args.length);
+            return callDirect(modem.name(), "callRemote", forwarded);
+        }
+        throw new PeripheralException("No such peripheral " + name);
+    }
+
     /** The types of a peripheral for the kernel (no guest process): on a side, or on a wired network; null if gone. */
     public List<String> typesDirect(String name) {
         var a = attached.get(name);

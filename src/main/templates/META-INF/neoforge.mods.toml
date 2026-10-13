@@ -13,12 +13,14 @@ logoFile="ccbaremetal_logo.png"
 credits="Built on CC: Tweaked (textures recoloured from it), Chicory, LLVM/clang (YoWASP) and wasi-sdk."
 description='''
 WebAssembly computers for CC: Tweaked: a Unix-like system with a shell and
-about 175 commands, users and sudo, an in-game C/C++ compiler (clang),
-Linux-style devices (/dev/fb0, /dev/input, /dev/periph), graphics and pixel
-monitors, networking over modems with ssh, a turtle and a pocket computer whose
-upgrades go into slots, a keyboard to type from the world, HTTP through CC's own
-API, and every peripheral of CC and its addons. Also adds Unicode text to CC's
-own computers, monitors and printers without changing what programs see.
+about 175 commands, users and sudo, an in-game C/C++ compiler (clang) with
+threads and SDL2, Linux-style devices (/dev/fb0, /dev/input, /dev/dsp,
+/dev/periph), graphics in up to 32-bit colour and pixel monitors, speakers as a
+mixing sound card, networking over modems with ssh, a turtle and a pocket
+computer whose upgrades go into slots, a keyboard to type from the world, HTTP
+through CC's own API, and every peripheral of CC and its addons. Also adds
+Unicode text to CC's own computers, monitors and printers without changing what
+programs see.
 '''
 
 [[mixins]]

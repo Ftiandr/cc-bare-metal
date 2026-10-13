@@ -29,7 +29,7 @@ CC: TWEAKED
   redstone                redstone outputs and inputs
   fbset                   graphics modes and screen resolution (/dev/fb0)
   evtest                  keyboard/mouse events from /dev/input
-  man PAGE         manual pages: sh edit cc pkg gfx dev periph lua craftos baremetal keys
+  man PAGE         manual pages: sh edit cc sdl pkg gfx dev periph lua craftos baremetal keys
                    turtle http users sudoers ssh net
 
 PROGRAMMING

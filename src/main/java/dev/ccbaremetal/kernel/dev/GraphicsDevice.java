@@ -13,8 +13,8 @@ import java.util.function.Supplier;
  * A framebuffer (class graphics, /dev/fbN, Linux fbdev): the computer's screen (fb0) or a pixel monitor. Attributes:
  * <pre>
  *   virtual_size     "512,288" (write "320,200" to change the resolution; fb0 also takes "auto")
- *   bits_per_pixel   1, 2, 4 or 8 (2, 4, 16 or 256 colours)
- *   stride           bytes per line of the node (= width)
+ *   bits_per_pixel   1, 2, 4 or 8 (2, 4, 16 or 256 colours, a palette), 16 (RGB565) or 32 (XRGB8888)
+ *   stride           bytes per line of the node (width * bytes per pixel)
  *   palette          "INDEX RRGGBB" per line (write such lines to change colours)
  *   max_size, name
  *   display          fb0 only: "text" or "graphics", what the screen shows (write to switch)
@@ -48,7 +48,7 @@ public final class GraphicsDevice extends Device {
         attribute("name", () -> (screen ? "ccbaremetal" : "pixel_monitor") + "\n");
         attribute("virtual_size", () -> framebuffer.get().width() + "," + framebuffer.get().height() + "\n", this::setSize, true);
         attribute("bits_per_pixel", () -> framebuffer.get().bpp() + "\n", this::setDepth, true);
-        attribute("stride", () -> framebuffer.get().width() + "\n");
+        attribute("stride", () -> framebuffer.get().width() * framebuffer.get().bytesPerPixel() + "\n");
         attribute("palette", this::palette, this::setPalette, true);
         attribute("max_size", () -> framebuffer.get().maxWidth() + "," + framebuffer.get().maxHeight() + "\n");
         if (screen) {

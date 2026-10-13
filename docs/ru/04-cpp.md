@@ -17,17 +17,50 @@ c++ -v ...                                         # показать шаги
 - Все команды (`cc`, `gcc`, `c++`...) понимают и C, и C++ по расширению файла и линкуют libc++, как gcc.
 - Исключения включены (`-fno-exceptions` выключает); RTTI, шаблоны, вся стандартная библиотека: контейнеры,
   `<algorithm>`, `<string>`, `<iostream>`, `<fstream>`, `<filesystem>`, `<chrono>`, `<regex>`, `<format>`...
-- Потоков нет.
+- Потоки: `-pthread` (потоки POSIX, `std::thread`, атомики), см. ниже.
 - Скорость: файл на C++ с `<iostream>` компилируется 10–20 с, на C — около секунды; первый вызов после запуска
   сервера — ещё ~3 с на загрузку компилятора.
 - Binutils: `ar ranlib nm objdump objcopy strip size c++filt addr2line ld`.
 - Пути: `/usr/include` и `/usr/local/include` (заголовки), `/usr/lib` и `/usr/local/lib` (библиотеки).
 - Память компилятора ограничена настройкой `compiler_memory_mb` (по умолчанию 1024 МБ), обычных программ —
-  `memory_per_process_mb` (64 МБ).
+  `memory_per_process_mb` (256 МБ).
 
 Программы можно собирать и вне игры с wasi-sdk:
 `clang++ --target=wasm32-wasip1 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false` (среда выполнения
 поддерживает только современную обработку исключений WebAssembly).
+
+## Потоки
+
+```sh
+cc -pthread -O2 worker.c -o worker        # pthread_create, мьютексы, условные переменные, _Thread_local, атомики
+c++ -pthread game.cpp -o game             # std::thread, std::mutex, std::async...
+```
+
+`-pthread` собирает под `wasm32-wasip1-threads`: память программы общая, и каждый поток выполняется в своём потоке
+сервера, параллельно (thread-spawn из WASI). `std::thread::hardware_concurrency()` и `sysconf(_SC_NPROCESSORS_ONLN)`
+дают число процессоров сервера, но не больше `threads_per_process` (по умолчанию 8) — сколько потоков может быть у
+одной программы. `exit()` из любого потока или конец `main` завершают их все; `kill` и Ctrl+C тоже. Приоритеты
+планирования принимаются и ни на что не влияют. Вне игры:
+`--target=wasm32-wasip1-threads -pthread -Wl,--import-memory,--export-memory,--max-memory=4294967296`.
+
+## SDL2
+
+В системе есть [SDL 2.32](https://www.libsdl.org) (лицензия zlib), так что игры и плееры, написанные под SDL,
+собираются как есть:
+
+```sh
+cc game.c $(sdl2-config --cflags --libs) -o game      # = -I/usr/include/SDL2 -pthread -lSDL2
+```
+
+- Видео: окно — весь экран в 32-битном полном цвете (или пиксельный монитор: `SDL_CCBAREMETAL_FB=fb1`), не больше
+  размера экрана; программный рендерер SDL (`SDL_Renderer`, текстуры, YUV) и поверхности окна работают.
+- Ввод: клавиши из `/dev/input/event0`, мышь из `event1`, текст (`SDL_TEXTINPUT`) из терминала в любой раскладке;
+  Ctrl+C становится `SDL_QUIT`.
+- Звук: OSS-драйвер SDL на `/dev/dsp` (первый динамик; `AUDIODEV=/dev/dsp1` — другой), любой формат и частота
+  (преобразует ядро).
+- Потоки, таймеры, `SDL_GetTicks`, `SDL_Delay` — есть. Джойстиков, вибрации, OpenGL и разделяемых библиотек нет.
+
+SDL нужны потоки (звук и таймеры работают в своих), поэтому `-lSDL2` сам включает `-pthread`.
 
 ## Заголовки системы
 
@@ -42,12 +75,18 @@ c++ -v ...                                         # показать шаги
 | Заголовок | Что есть |
 |---|---|
 | `<termios.h>` | `tcgetattr`, `tcsetattr`, `cfmakeraw`, `tcgetwinsize`: работают ICANON, ECHO, ISIG, ICRNL (Enter приходит как `\n`, после `cfmakeraw` — как `\r`), VMIN/VTIME (чтение с таймаутом и опрос) |
-| `<sys/ioctl.h>` | `ioctl(fd, TIOCGWINSZ, &ws)` — размер терминала |
+| `<sys/ioctl.h>` | `ioctl(fd, TIOCGWINSZ, &ws)` — размер терминала; управление устройствами, например OSS на `/dev/dspN` |
+| `<sys/soundcard.h>` | OSS: `SNDCTL_DSP_SETFMT`, `SPEED`, `CHANNELS`, `GETODELAY`, `RESET`, `SYNC`... (см. [раздел 6](06-peripherals.md)) |
 | `<sys/wait.h>` | `waitpid`, `wait`, `WEXITSTATUS`... |
 | `<spawn.h>` | `posix_spawn`, `posix_spawnp` (перенаправление 0–2 через file actions) |
-| `<stdlib.h>`, `<stdio.h>` | `system()`, `popen()` / `pclose()` (через `sh -c`) |
+| `<stdlib.h>`, `<stdio.h>` | `system()`, `popen()` / `pclose()` (через `sh -c`); `mkstemp`, `mkdtemp`, `mkostemp`, `tmpfile`, `tempnam`, `tmpnam` |
+| `<unistd.h>` | `pipe`, `pipe2`, `dup`, `dup2`, `getpid`, `getppid`, `setsid`, группы процессов, `execv`/`execvp`/`execl`... (запускают программу, ждут и выходят с её кодом), `ttyname`, `getlogin`, `getpass`; `sysconf(_SC_NPROCESSORS_ONLN)` |
+| `<signal.h>` | `sigaction`, `sigprocmask`, наборы сигналов, `kill`, `killpg`: обработчики запоминаются, SIGINT/SIGTERM завершают процесс или игнорируются с `SIG_IGN` (асинхронных обработчиков нет) |
+| `<sys/statvfs.h>`, `<sys/resource.h>` | `statvfs` (свободное место на диске), `getrlimit` / `setrlimit` |
+| `<pthread.h>`, `<sched.h>` | с `-pthread`: потоки POSIX, а также параметры планирования и `pthread_sigmask` |
 
-`fork()` в WebAssembly невозможен: программы запускаются через `posix_spawn`, `system` или `cc::spawn`.
+`fork()` в WebAssembly невозможен (возвращает `ENOSYS`): программы запускаются через `posix_spawn`, `system`,
+`exec*` или `cc::spawn`.
 
 ## API `<baremetal.hpp>`
 

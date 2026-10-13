@@ -35,3 +35,23 @@ path = ["TEMPLATE_LICENSE.txt"]
 precedence = "override"
 SPDX-FileCopyrightText = "NeoForged"
 SPDX-License-Identifier = "MIT"
+
+# SDL 2.32 (Copyright 1997-2025 Sam Lantinga), built for the system by userland/sdl/build.sh: its headers and the
+# static library (which also holds our video driver, userland/sdl/SDL_ccbmvideo.c, MPL-2.0).
+[[annotations]]
+path = ["src/main/rootfs/usr/include/SDL2/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "1997-2025 Sam Lantinga"
+SPDX-License-Identifier = "Zlib"
+
+[[annotations]]
+path = ["src/main/rootfs/usr/include/SDL2/SDL_config.h"]
+precedence = "override"
+SPDX-FileCopyrightText = "Ftiandr"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = ["src/main/rootfs/usr/lib/wasm32-wasip1-threads/libSDL2.a"]
+precedence = "override"
+SPDX-FileCopyrightText = ["1997-2025 Sam Lantinga", "Ftiandr"]
+SPDX-License-Identifier = "Zlib AND MPL-2.0"

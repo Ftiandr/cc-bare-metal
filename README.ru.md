@@ -8,8 +8,9 @@
 
 Аддон для [CC: Tweaked](https://tweaked.cc) (Minecraft 1.21.1, NeoForge). Добавляет новый уровень компьютеров:
 вместо Lua они выполняют программы на **WebAssembly**. Внутри — Unix-подобная система с оболочкой, утилитами и
-настоящим **компилятором C/C++ прямо в игре**, графика до 1280×800, устройства в стиле Linux (`/dev/fb0`,
-`/dev/input`, `/dev/periph`) и доступ ко всей периферии CC: Tweaked и его аддонов. Есть WASM-черепашка и карманный
+настоящим **компилятором C/C++ прямо в игре** (с потоками и SDL2), графика до 1280×800 с цветом до 32 бит,
+устройства в стиле Linux (`/dev/fb0`, `/dev/input`, `/dev/dsp`, `/dev/periph`) и доступ ко всей периферии
+CC: Tweaked и его аддонов. Есть WASM-черепашка и карманный
 компьютер, а обычные компьютеры, мониторы и принтеры CC получают Unicode — без форка CC и без изменения того, что
 видят программы.
 
@@ -34,10 +35,15 @@
 
 - Оболочка `sh`: конвейеры, перенаправления, переменные, циклы, функции, `case`, подстановка `$(...)`.
 - Около 175 команд: coreutils, `sed`, `awk`, `diff`, `tar`, `grep -r`, `find -exec`, `xargs`, `sha256sum`...;
-  редактор `edit` с выделением, мышью и отменой; менеджер пакетов `pkg`; справка `man`.
+  редактор `edit` с выделением, мышью и отменой; менеджер пакетов `pkg` с сетевыми репозиториями и установкой, которая не оставляет недописанных пакетов;
+  справка `man`.
 - **C и C++ в игре**: clang 22 и libc++ (`c++`, `g++`, `cc`, `gcc`), исключения, вся стандартная библиотека,
-  `ar`/`nm`/`objdump`. Слой POSIX (`termios`, `posix_spawn`, `waitpid`, `popen`, `ioctl`) позволяет собирать
-  программы для Linux без правок. Компилятор — тоже WebAssembly и работает на любой платформе.
+  `ar`/`nm`/`objdump`. Компилятор — тоже WebAssembly и работает на любой платформе.
+- **Потоки**: `-pthread` даёт потоки POSIX и `std::thread`, которые работают параллельно на ядрах сервера.
+- **SDL2** встроен (`sdl2-config --cflags --libs`): игры и плееры, написанные под SDL, собираются как есть — с
+  графикой на экране, клавиатурой, мышью и звуком через динамики.
+- **Слой POSIX** (`termios`, `posix_spawn`, `waitpid`, `popen`, `pipe`/`dup`, `sigaction`, `mkstemp`, `statvfs`,
+  `ioctl` OSS...) позволяет собирать программы для Linux без правок.
 - **Пользователи и права** как в Linux: установщик при первом включении (имя, пользователь, пароль), `login`,
   `passwd`, `sudo` с `/etc/sudoers`, `su`, `useradd`, `chmod`, `chown`, `lock`.
 - **Клавиатура**: печатать на компьютере прямо из мира, в руке или поставленной на стол (все клавиши перехвачены, и
@@ -49,8 +55,8 @@
 
 **Графика и ввод**
 
-- Индексированный фреймбуфер (2/4/16/256 цветов, по сети уходят только изменения): через API, файл `/dev/fb0`
-  или на пиксельные мониторы.
+- Фреймбуфер на 2/4/16/256 цветов или в полном цвете (16 и 32 бита), по сети уходят только изменения: через API,
+  файл `/dev/fb0`, SDL или на пиксельные мониторы.
 - Ввод как в Linux: `/dev/input/event0` (клавиатура), `event1` (мышь), `event2…` (сенсоры мониторов),
   `/dev/input/mice`. Терминал в стиле xterm: мышь, клавиши с модификаторами, буфер обмена.
 
@@ -59,6 +65,8 @@
 - Любая периферия любого мода — без кода под каждый мод: методы, объекты в ответах, глобальные API аддонов, события.
 - Периферия как файлы: `/dev/periph/<имя>/<метод>`, `/dev/fbN`, `/dev/dspN` (динамики), `/dev/lpN` (принтеры),
   `/dev/monitorN` (мониторы CC как терминал), `/sys/class/redstone`.
+- **Динамики как звуковая карта**: несколько программ звучат одновременно (ядро их смешивает), любой формат и
+  частота (OSS), и звук не отстаёт от картинки.
 - `rednet` и `gps`, совместимые с Lua-компьютерами.
 - **Интернет**: `curl`, `wget`, `pkg install URL`, `cc::http` в C++, `http` в Lua — через HTTP-API самого CC, с теми
   же настройками и правилами доступа сервера.
@@ -66,6 +74,19 @@
   метках. Программы по-прежнему видят байты, как в CC.
 
 ![Модули черепашки](docs/images/turtle-modules.png)
+
+## Что нового в 0.2.0
+
+- Потоки (`cc -pthread`, `std::thread`) и настройка `threads_per_process`.
+- SDL2 в системе со своим видеодрайвером для экрана и пиксельных мониторов.
+- Полный цвет: 16 и 32 бита на пиксель — через API, `/dev/fb0` и SDL.
+- Звуковой драйвер: свой поток у каждой программы, смешивание в ядре; форматы и частоты OSS; задержка у игроков CC
+  больше не копится, а убитая программа замолкает сразу.
+- Больше POSIX: каналы, `dup`, группы процессов, `exec*`, сигналы (`sigaction`), временные файлы, `statvfs`,
+  `getrlimit` и другое; в программах, собранных в игре, работают `signal.h`, `mmap` и `getpid`.
+- `pkg`: сетевые репозитории (`pkg repo add URL`, `pkg index`), проверка скачанного и установка, которая сначала
+  проверяет место и заменяет файлы, только когда всё записано.
+- Больше по умолчанию: 256 МБ на программу, 64 МБ диска, 16 МБ `/tmp`.
 
 ## Требования
 
@@ -77,7 +98,7 @@
 
 ## Установка
 
-Положите `ccbaremetal-<версия>.jar` в папку `mods` рядом с CC: Tweaked. Компилятор C/C++ уже внутри jar (около 41 МБ);
+Положите `ccbaremetal-<версия>.jar` в папку `mods` рядом с CC: Tweaked. Компилятор C/C++ уже внутри jar (около 45 МБ);
 при первом запуске он распаковывается в `<папка игры>/ccbaremetal/toolchain`.
 
 ## Быстрый старт
@@ -107,8 +128,8 @@ man intro
 8. [Настройки](docs/ru/08-config.md)
 9. [Устройство и сборка из исходников](docs/ru/09-development.md)
 
-Внутри игры та же информация есть в справке: `man intro`, `man cc`, `man baremetal`, `man gfx`, `man dev`, `man keys`,
-`man turtle`, `man http`, `man users`, `man ssh`, `man net`.
+Внутри игры та же информация есть в справке: `man intro`, `man cc`, `man sdl`, `man baremetal`, `man gfx`, `man dev`,
+`man pkg`, `man keys`, `man turtle`, `man http`, `man users`, `man ssh`, `man net`.
 
 ## Сборка из исходников
 
@@ -120,12 +141,25 @@ make -C userland                # пересобрать систему (C++), �
 Первая сборка скачивает clang (YoWASP) и переводит его в байткод JVM: около 4 минут и 4 ГБ памяти. Подробнее —
 в [docs/ru/09-development.md](docs/ru/09-development.md).
 
-## Лицензия
+## Лицензии
 
-Код — [Mozilla Public License 2.0](LICENSE), как у самого CC: Tweaked. Текстуры, перекрашенные из CC: Tweaked,
-остаются под его [ComputerCraft Public License](LICENSES/LicenseRef-CCPL.txt) (разрешает некоммерческие моды).
-Компоненты, которые входят в jar (Chicory, LLVM/clang, wasi-libc, libc++), и их лицензии перечислены в
-[THIRD_PARTY.md](THIRD_PARTY.md).
+Собственный код CC: Bare Metal — под [Mozilla Public License 2.0](LICENSE), как у самого CC: Tweaked. Текстуры,
+перекрашенные из CC: Tweaked, остаются под его [ComputerCraft Public License](LICENSES/LicenseRef-CCPL.txt)
+(разрешает некоммерческие моды).
+
+В jar также входят эти компоненты, каждый под своей лицензией (тексты — в [LICENSES](LICENSES), подробности — в
+[THIRD_PARTY.md](THIRD_PARTY.md), по файлам — в [REUSE.toml](REUSE.toml)):
+
+| Компонент | Для чего | Лицензия |
+|---|---|---|
+| [Chicory](https://github.com/dylibso/chicory) | выполняет WebAssembly на JVM | Apache-2.0 |
+| [LLVM](https://llvm.org): clang, lld, binutils, compiler-rt | компилятор в игре (также переведён в байткод JVM) | Apache-2.0 WITH LLVM-exception |
+| [YoWASP clang](https://github.com/YoWASP/clang) | сборка LLVM под WebAssembly | ISC (упаковка), лицензия LLVM |
+| [wasi-libc](https://github.com/WebAssembly/wasi-libc) (с частями musl) | библиотека C всех программ | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT; musl — MIT |
+| libc++, libc++abi, libunwind (LLVM, из [wasi-sdk](https://github.com/WebAssembly/wasi-sdk)) | стандартная библиотека C++ | Apache-2.0 WITH LLVM-exception |
+| [SDL 2.32](https://www.libsdl.org) | медиабиблиотека для портированных программ | Zlib |
+
+ROM CraftOS, Cobalt (Lua) и HTTP CC: Tweaked берутся из установленного CC: Tweaked и в jar не входят.
 
 ## Об использовании ИИ
 
@@ -143,4 +177,5 @@ design, decisions, review and in-game testing by the author.*
 - [Chicory](https://github.com/dylibso/chicory) — среда выполнения WebAssembly на JVM.
 - [LLVM/clang](https://llvm.org) в сборке [YoWASP](https://yowasp.org) и
   [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) (wasi-libc, libc++) — компилятор и стандартная библиотека.
+- [SDL](https://www.libsdl.org) — медиабиблиотека, которой пользуются портированные программы.
 - Шаблон проекта — [NeoForged MDK](https://github.com/NeoForged/MDK) (`TEMPLATE_LICENSE.txt`).

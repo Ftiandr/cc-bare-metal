@@ -205,12 +205,14 @@ int main(int argc, char **argv) {
     }
 
     // Exceptions are on for every driver: "cc game.cpp" compiles C++ by the file name, and the flags do not affect C.
-    bool link = true, exceptions = true, dryRun = false, hasInput = false, infoOnly = false;
+    bool link = true, exceptions = true, dryRun = false, hasInput = false, infoOnly = false, threads = false;
     Args args;
     for (size_t i = 0; i < user.size(); i++) {
         auto a = user[i];
         if (a == "-c" || a == "-S" || a == "-E" || a == "-M" || a == "-MM" || a == "-fsyntax-only") link = false;
         if (a == "-fno-exceptions") exceptions = false;
+        // SDL2 runs its audio and timers on threads: programs that use it are built with them
+        if (a == "-pthread" || a == "-pthreads" || a == "-lpthread" || a == "-lSDL2") threads = true;
         if (a == "-fexceptions" || a == "-fcxx-exceptions") exceptions = true;
         if (a == "-v") verbose = true;
         if (a == "-###") dryRun = true;
@@ -258,8 +260,15 @@ int main(int argc, char **argv) {
     }
 
     std::string clang = cxx ? "clang++" : "clang";
-    Args command = {clang, "--target=wasm32-wasip1", "--sysroot=" + SYSROOT, "-resource-dir=" + RESOURCE_DIR,
-                    "-isystem", "/usr/local/include", "-isystem", "/usr/include", "-D__BAREMETAL__=1"};
+    // -pthread: wasm32-wasip1-threads (shared memory, atomics, wasi::thread-spawn), with its own libc and libbaremetal
+    std::string target = threads ? "wasm32-wasip1-threads" : "wasm32-wasip1";
+    std::string libDir = threads ? "/usr/lib/wasm32-wasip1-threads" : "/usr/lib";
+    Args command = {clang, "--target=" + target, "--sysroot=" + SYSROOT, "-resource-dir=" + RESOURCE_DIR,
+                    "-isystem", "/usr/local/include", "-isystem", "/usr/include", "-D__BAREMETAL__=1",
+                    // signals, process clocks, mmap and getpid as ported programs expect them (WASI has none; the
+                    // emulation libraries and libbaremetal provide them, see the link line)
+                    "-D_WASI_EMULATED_SIGNAL", "-D_WASI_EMULATED_PROCESS_CLOCKS", "-D_WASI_EMULATED_MMAN",
+                    "-D_WASI_EMULATED_GETPID"};
     if (exceptions) {
         // The runtime implements the current WebAssembly exception handling, not the legacy one.
         command.insert(command.end(), {"-fwasm-exceptions", "-mllvm", "-wasm-use-legacy-eh=false"});
@@ -269,14 +278,21 @@ int main(int argc, char **argv) {
     command.insert(command.end(), args.begin(), args.end());
     if (link && hasInput) {
         // crt_cwd.o makes programs start in the shell's working directory (WASI has no inherited cwd).
-        command.insert(command.end(), {"-L/usr/local/lib", "-L/usr/lib", "/usr/lib/crt_cwd.o", "-lbaremetal",
+        if (threads) {
+            // a shared memory needs a declared maximum; the kernel still caps it at memory_per_process_mb
+            command.insert(command.end(), {"-pthread", "-Wl,--import-memory,--export-memory,--max-memory=4294967296", "-L/usr/local/lib/wasm32-wasip1-threads", "-L" + libDir});
+        }
+        command.insert(command.end(), {"-L/usr/local/lib", "-L/usr/lib", libDir + "/crt_cwd.o", "-lbaremetal",
                                        "-Wl,-z,stack-size=1048576",
                                        // owners and modes: libbaremetal's stat/chmod/access replace the C library's
                                        "-Wl,--wrap=stat,--wrap=lstat,--wrap=fstat,--wrap=fstatat,--wrap=chmod,--wrap=fchmod,"
-                                       "--wrap=fchmodat,--wrap=access,--wrap=faccessat"});
+                                       "--wrap=fchmodat,--wrap=access,--wrap=faccessat,--wrap=statvfs,--wrap=fstatvfs,--wrap=sysconf"});
         // The C++ runtime for every driver, like a C++-aware gcc: "cc game.cpp" and "cc a.o b.o" with C++ objects
         // must link too. Archive members are only pulled in when used, so C programs do not grow.
         command.insert(command.end(), {"-lc++", "-lc++abi", "-lunwind"});
+        // after libbaremetal, which has the real getpid/kill/sigaction (lib/posix.cpp)
+        command.insert(command.end(), {"-lwasi-emulated-signal", "-lwasi-emulated-process-clocks", "-lwasi-emulated-mman",
+                                       "-lwasi-emulated-getpid"});
     }
     if (infoOnly || !hasInput) return runTool(clang, command);
 

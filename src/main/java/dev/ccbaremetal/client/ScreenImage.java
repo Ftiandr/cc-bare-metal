@@ -63,6 +63,7 @@ public final class ScreenImage implements AutoCloseable {
     private int fbWidth = 1;
     private int fbHeight = 1;
     private byte[] pixels = new byte[1];
+    private int[] rgb = new int[1]; // direct colour modes (16/32 bpp): 0xRRGGBB per pixel
     private final int[] fbPalette = new int[256];
     private int fbBpp = 8;
     // Framebuffer bytes received in the last two seconds, for the GUI's traffic display.
@@ -198,19 +199,27 @@ public final class ScreenImage implements AutoCloseable {
 
     public void applyFramebuffer(FbData d) {
         if (d.width() <= 0 || d.height() <= 0 || d.width() > 2048 || d.height() > 2048 || !Framebuffer.validBpp(d.bpp())) return;
-        if (d.width() != fbWidth || d.height() != fbHeight) {
+        var direct = d.bpp() > 8;
+        if (d.width() != fbWidth || d.height() != fbHeight || direct != (fbBpp > 8)) {
             fbWidth = d.width();
             fbHeight = d.height();
-            pixels = new byte[fbWidth * fbHeight];
+            pixels = new byte[direct ? 1 : fbWidth * fbHeight];
+            rgb = new int[direct ? fbWidth * fbHeight : 1];
         }
         fbBpp = d.bpp();
         received.addLast(new long[]{System.currentTimeMillis(), d.packed().length + 16L + d.palette().length * 3L});
         if (received.size() > 4096) received.removeFirst();
         if (d.palette().length > 0) System.arraycopy(d.palette(), 0, fbPalette, 0, Math.min(256, d.palette().length));
         if (d.w() > 0 && d.h() > 0 && d.x() >= 0 && d.y() >= 0 && d.x() + d.w() <= fbWidth && d.y() + d.h() <= fbHeight) {
-            var rect = new byte[d.w() * d.h()];
-            Framebuffer.unpack(Compression.inflate(d.packed(), 1 << 22), d.bpp(), d.w(), d.h(), rect);
-            for (var y = 0; y < d.h(); y++) System.arraycopy(rect, y * d.w(), pixels, (d.y() + y) * fbWidth + d.x(), d.w());
+            if (direct) {
+                var rect = new int[d.w() * d.h()];
+                Framebuffer.unpackRgb(Compression.inflate(d.packed(), 1 << 23), d.bpp(), d.w(), d.h(), rect);
+                for (var y = 0; y < d.h(); y++) System.arraycopy(rect, y * d.w(), rgb, (d.y() + y) * fbWidth + d.x(), d.w());
+            } else {
+                var rect = new byte[d.w() * d.h()];
+                Framebuffer.unpack(Compression.inflate(d.packed(), 1 << 22), d.bpp(), d.w(), d.h(), rect);
+                for (var y = 0; y < d.h(); y++) System.arraycopy(rect, y * d.w(), pixels, (d.y() + y) * fbWidth + d.x(), d.w());
+            }
         }
         if (graphics) dirty = true;
     }
@@ -372,6 +381,13 @@ public final class ScreenImage implements AutoCloseable {
         if (!dirty && texture != null) return;
         dirty = false;
         ensureImage(fbWidth, fbHeight);
+        if (fbBpp > 8) {
+            for (var y = 0; y < fbHeight; y++) {
+                for (var x = 0; x < fbWidth; x++) image.setPixelRGBA(x, y, abgr(rgb[y * fbWidth + x]));
+            }
+            texture.upload();
+            return;
+        }
         var palette = new int[256];
         for (var i = 0; i < 256; i++) palette[i] = abgr(fbPalette[i]);
         for (var y = 0; y < fbHeight; y++) {

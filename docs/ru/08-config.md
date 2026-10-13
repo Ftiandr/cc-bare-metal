@@ -4,13 +4,14 @@
 
 | Ключ | По умолчанию | Что задаёт |
 |---|---|---|
-| `computer.memory_per_process_mb` | 64 | память одного процесса WebAssembly, МБ |
+| `computer.memory_per_process_mb` | 256 | память одного процесса WebAssembly, МБ |
 | `computer.compiler_memory_mb` | 1024 | память компилятора clang, МБ (занимается только пока он работает) |
 | `computer.max_processes` | 64 | процессов на компьютер |
-| `computer.disk_space_mb` | 16 | диск компьютера, МБ |
-| `computer.tmp_space_mb` | 8 | `/tmp` в памяти, МБ |
-| `computer.max_sync_kb_per_tick` | 64 | мягкий предел сжатых данных экрана на игрока за тик, КБ |
-| `computer.upload_max_kb` | 16384 | сколько файлов игрок может перетащить в окно за раз, КБ (0 — запретить) |
+| `computer.threads_per_process` | 8 | потоков у одной программы (`-pthread`): сколько ядер сервера она может занять |
+| `computer.disk_space_mb` | 64 | диск компьютера, МБ |
+| `computer.tmp_space_mb` | 16 | `/tmp` в памяти, МБ |
+| `computer.max_sync_kb_per_tick` | 128 | мягкий предел сжатых данных экрана на игрока за тик, КБ |
+| `computer.upload_max_kb` | 65536 | сколько файлов игрок может перетащить в окно за раз, КБ (0 — запретить) |
 | `monitor.max_width`, `monitor.max_height` | 8, 6 | максимальный размер пиксельного монитора в блоках |
 | `monitor.pixels_per_block` | 64 | разрешение блока монитора по умолчанию |
 

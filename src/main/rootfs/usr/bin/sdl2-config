@@ -1,0 +1,11 @@
+#!/bin/sh
+# sdl2-config for CC: Bare Metal's SDL2 (a static library; programs with SDL use threads: -pthread)
+for a in "$@"; do
+    case "$a" in
+        --cflags) echo "-I/usr/include/SDL2 -D_REENTRANT -pthread" ;;
+        --libs|--static-libs) echo "-pthread -lSDL2" ;;
+        --version) echo "2.32.10" ;;
+        --prefix|--exec-prefix) echo "/usr" ;;
+        *) echo "usage: sdl2-config [--cflags] [--libs] [--static-libs] [--version] [--prefix]" >&2; exit 1 ;;
+    esac
+done

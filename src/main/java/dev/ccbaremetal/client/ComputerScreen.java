@@ -386,8 +386,9 @@ public class ComputerScreen<T extends ComputerMenu> extends Screen implements Me
         if (on && !image.graphics()) title += "   " + image.termWidth() + "\u00d7" + image.termHeight();
         if (on && image.graphics()) {
             // Graphics mode: resolution, colours and what the screen currently costs on the network.
-            title += "   " + image.fbWidth() + "\u00d7" + image.fbHeight() + " " + (1 << image.fbBpp()) + " "
-                + Component.translatable("gui.ccbaremetal.colours").getString() + "   " + formatRate(image.bytesPerSecond());
+            var depth = image.fbBpp() > 8 ? image.fbBpp() + "-bit" // true colour: no palette to count
+                : (1 << image.fbBpp()) + " " + Component.translatable("gui.ccbaremetal.colours").getString();
+            title += "   " + image.fbWidth() + "\u00d7" + image.fbHeight() + " " + depth + "   " + formatRate(image.bytesPerSecond());
         }
         if (image.scrollOffset() > 0) title += "   \u2191" + image.scrollOffset();
         if (System.currentTimeMillis() < noticeUntil) title += "   " + notice;

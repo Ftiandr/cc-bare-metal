@@ -8,15 +8,29 @@ PKG - package manager
   pkg list                 installed packages
   pkg files NAME           files of a package
   pkg build DIR [OUT]      build DIR/manifest.json + DIR/files/ into a package
-  pkg update               newer versions of the installed packages
+  pkg update               refresh the network repositories' indexes, list
+                           newer versions of the installed packages
   pkg upgrade [NAME...]    install them (files the new version dropped go)
+  pkg repo [list]          the repositories
+  pkg repo add DIR|URL     add one (to /etc/pkg/repos; needs sudo)
+  pkg repo remove DIR|URL
+  pkg index DIR            write DIR/index.json: served over HTTP, DIR is a
+                           network repository (pkg repo add https://.../DIR)
 
 Each installed package remembers where it came from (a repository, a file, a
 URL; /var/lib/pkg/NAME.json "origin"): update looks for a newer version there.
 Versions compare by parts: 1.10 is newer than 1.9, 2.0-beta older than 2.0.
 
 Repositories: /usr/share/pkg, /disk*/pkg on floppy disks, and directories
-listed in /etc/pkg/repos. Packages install into /usr/local.
+listed in /etc/pkg/repos: folders of .ccpkg files, or URLs of a folder with
+index.json (name, version, file, size, sha256 of each package; pkg update
+fetches it into /var/cache/pkg/index, a package is downloaded on install and
+checked against it). Packages install into /usr/local.
+
+Installing is careful: the package must be whole and fit on the disk
+(checked first); every file is written as FILE.pkgnew and replaces the
+installed one only when all are written. A full disk or a broken download
+installs nothing and leaves the installed version as it was.
 
 manifest.json:
   {"name": "hello", "version": "1.0", "description": "...",

@@ -181,7 +181,8 @@ struct Info {
     int width = 0, height = 0, bpp = 0;
     bool active = false;
 };
-// Switch the screen to graphics (bpp 1, 2, 4 or 8; flags CC_GFX_GRAY). Returns false if unsupported.
+// Switch the screen to graphics (bpp 1, 2, 4 or 8 with a palette; 16 = RGB565 or 32 = XRGB8888, colours 0xRRGGBB;
+// flags CC_GFX_GRAY). Returns false if unsupported. blit/read data: bytes per pixel 1, 2 or 4; stride in pixels.
 bool mode(int width, int height, int bpp, int flags = 0);
 void textMode();
 Info info();

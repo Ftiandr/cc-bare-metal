@@ -5,7 +5,9 @@
 #   llvm/llvm.wasm            clang 22 + lld + binutils as one WebAssembly program (YoWASP build, plain WASI p1);
 #                             written by Gradle's precompileToolchain as a slim copy of build/llvm-full.wasm
 #   llvm/include, llvm/lib    clang's resource directory (builtin headers, compiler-rt builtins)
-#   wasi/include, wasi/lib    the sysroot: wasi-libc and libc++/libc++abi/libunwind with exceptions (wasi-sdk)
+#   wasi/include, wasi/lib    the sysroot: wasi-libc and libc++/libc++abi/libunwind with exceptions (wasi-sdk), for
+#                             wasm32-wasip1 and wasm32-wasip1-threads (pthreads: cc -pthread); the C++ headers are
+#                             the same for both
 #
 # Needs: wasi-sdk in tools/ (as for the userland), curl, tar. Downloads YoWASP clang into tools/ on first use.
 set -eu
@@ -27,7 +29,7 @@ if [ ! -f "$YOWASP/package/gen/llvm.core.wasm" ]; then
 fi
 
 rm -rf "$OUT"
-mkdir -p "$OUT/llvm" "$OUT/wasi/include" "$OUT/wasi/lib/wasm32-wasip1"
+mkdir -p "$OUT/llvm" "$OUT/wasi/include" "$OUT/wasi/lib/wasm32-wasip1" "$OUT/wasi/lib/wasm32-wasip1-threads"
 
 # --- compiler and its resource directory ---
 cp "$YOWASP/package/gen/llvm.core.wasm" "$OUT/../llvm-full.wasm"
@@ -43,23 +45,30 @@ for f in "$RES"/include/*; do
 done
 cp -r "$RES/lib/wasm32-unknown-wasip1" "$OUT/llvm/lib/"
 rm -rf "$RES"
+# compiler-rt for the threads target is not in YoWASP's resources: wasi-sdk's (plain WebAssembly objects)
+cp -r "$(ls -d "$WASI_SDK"/lib/clang/*/lib/wasm32-unknown-wasip1-threads | head -n1)" "$OUT/llvm/lib/"
 
 # --- sysroot ---
-mkdir -p "$OUT/wasi/include/wasm32-wasip1" "$OUT/wasi/include/c++"
-for f in "$SYSROOT"/include/wasm32-wasip1/*; do
-    case $(basename "$f") in
-        eh|noeh) ;;
-        *) cp -r "$f" "$OUT/wasi/include/wasm32-wasip1/" ;;
-    esac
+mkdir -p "$OUT/wasi/include/c++"
+for target in wasm32-wasip1 wasm32-wasip1-threads; do
+    mkdir -p "$OUT/wasi/include/$target"
+    for f in "$SYSROOT/include/$target"/*; do
+        case $(basename "$f") in
+            eh|noeh) ;;
+            *) cp -r "$f" "$OUT/wasi/include/$target/" ;;
+        esac
+    done
 done
 cp -r "$SYSROOT/include/wasm32-wasip1/eh/c++/v1" "$OUT/wasi/include/c++/"
 rm -rf "$OUT/wasi/include/c++/v1/__cxx03" # C++03 compatibility headers, unused
-LIB=$SYSROOT/lib/wasm32-wasip1
-for f in "$LIB"/*.a "$LIB"/*.o "$LIB"/eh/*.a; do
-    cp "$f" "$OUT/wasi/lib/wasm32-wasip1/"
+for target in wasm32-wasip1 wasm32-wasip1-threads; do
+    LIB=$SYSROOT/lib/$target
+    for f in "$LIB"/*.a "$LIB"/*.o "$LIB"/eh/*.a; do
+        cp "$f" "$OUT/wasi/lib/$target/"
+    done
+    # Debug info is most of the size of the C++ libraries.
+    "$WASI_SDK/bin/llvm-strip" --strip-debug "$OUT/wasi/lib/$target"/*.a "$OUT/wasi/lib/$target"/*.o
 done
-# Debug info is most of the size of the C++ libraries.
-"$WASI_SDK/bin/llvm-strip" --strip-debug "$OUT"/wasi/lib/wasm32-wasip1/*.a "$OUT"/wasi/lib/wasm32-wasip1/*.o
 
 du -sh "$OUT/llvm" "$OUT/wasi"
 echo "toolchain assembled in $OUT"

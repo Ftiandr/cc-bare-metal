@@ -155,6 +155,13 @@ int ccbaremetal_ioctl(int fd, int request, ...) {
     va_end(ap);
     if (request == TIOCGWINSZ) return tcgetwinsize(fd, static_cast<struct winsize *>(arg));
     if (request == TIOCSWINSZ) return 0;
+    // device controls the kernel knows (OSS on /dev/dspN...); anything else as the C library does it
+    int err = cc_fd_ioctl(fd, request, arg);
+    if (err == 0) return 0;
+    if (err != ENOTTY) {
+        errno = err;
+        return -1;
+    }
     return (ioctl)(fd, request, arg);
 }
 

@@ -98,15 +98,23 @@ ld` — см. [раздел 4](04-cpp.md).
 ```sh
 pkg search [text]        # доступные пакеты
 pkg install NAME         # установить (с зависимостями) в /usr/local
-pkg install FILE.ccpkg   # из файла
-pkg remove NAME  |  pkg list  |  pkg files NAME
+pkg install FILE.ccpkg   # из файла;  pkg install URL  скачивает его
+pkg remove NAME  |  pkg list  |  pkg files NAME  |  pkg info NAME
 pkg build DIR [OUT]      # собрать пакет из DIR/manifest.json и DIR/files/
-pkg update               # новые версии установленных пакетов
+pkg update               # обновить индексы сетевых репозиториев, показать новые версии установленного
 pkg upgrade [NAME...]    # установить их
+pkg repo [list|add X|remove X]   # репозитории: папки или URL (/etc/pkg/repos)
+pkg index DIR            # записать DIR/index.json: папка, выложенная по HTTP, становится сетевым репозиторием
 ```
 
-Репозитории: `/usr/share/pkg` (встроенный, например `demos` с `gfxdemo`), `/disk*/pkg` на дискетах и папки из
-`/etc/pkg/repos`. `manifest.json`: `{"name": "...", "version": "1.0", "description": "...", "depends": []}`. Пакет, перетащенный на компьютер файлом `.ccpkg`, ставится командой `pkg install ФАЙЛ.ccpkg`.
+Репозитории: `/usr/share/pkg` (встроенный, например `demos` с `gfxdemo`), `/disk*/pkg` на дискетах и то, что
+перечислено в `/etc/pkg/repos` (`sudo pkg repo add ...`): папки с файлами `.ccpkg` или URL папки с `index.json`
+(его делает `pkg index`). `pkg update` скачивает индексы сетевых репозиториев; их пакеты скачиваются при установке и
+сверяются с индексом (размер и SHA-256). `manifest.json`: `{"name": "...", "version": "1.0", "description": "...", "depends": []}`. Пакет, перетащенный на компьютер файлом `.ccpkg`, ставится командой `pkg install ФАЙЛ.ccpkg`.
+
+Установка аккуратная: пакет должен быть целым, а его файлы — помещаться на диск (это проверяется заранее); каждый
+файл пишется рядом со старым (`ФАЙЛ.pkgnew`) и заменяет установленный, только когда записаны все. Полный диск или
+оборванная загрузка оставляют установленную версию как была.
 
 Каждый установленный пакет помнит, откуда он: репозиторий, файл или URL. `pkg update` ищет там новую версию (версии
 сравниваются по частям: 1.10 новее 1.9), а `pkg upgrade` её ставит и убирает файлы, которых в новой версии больше

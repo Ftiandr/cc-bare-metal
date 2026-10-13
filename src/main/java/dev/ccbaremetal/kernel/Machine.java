@@ -50,7 +50,7 @@ public final class Machine {
     /** PATH of a new session, and the search path when a program runs without PATH (as after {@code env -i}). */
     static final String DEFAULT_PATH = "/usr/local/bin:/bin:/usr/bin:/sbin";
 
-    public static final String VERSION = "0.1.0";
+    public static final String VERSION = "0.2.0";
     private static final Logger LOG = LoggerFactory.getLogger(Machine.class);
 
     /** Sides in CC's order (ComputerSide): bottom, top, back, front, right, left. */
@@ -62,7 +62,7 @@ public final class Machine {
      *                             which needs far more than ordinary programs
      */
     public record Config(int maxMemoryPages, int toolchainMemoryPages, int maxProcesses, long diskCapacity, long tmpCapacity,
-                         int termWidth, int termHeight, int screenWidth, int screenHeight) {
+                         int termWidth, int termHeight, int screenWidth, int screenHeight, int maxThreads) {
     }
 
     /** Where the clang toolchain is mounted. */
@@ -71,6 +71,14 @@ public final class Machine {
     /** What the machine needs from the block/item hosting it. */
     public interface Host {
         MinecraftServer server();
+
+        /**
+         * Whether a speaker may be told to stop (CC then messages every player): someone is there to hear it, and every
+         * player can receive the message.
+         */
+        default boolean canStopSpeakers() {
+            return true;
+        }
 
         default void onLabelChanged(String label) {
         }
@@ -835,7 +843,7 @@ public final class Machine {
         var p = program != null
             ? program.create(this, pid, ppid, pgid, name, argv, env)
             : new WasmProcess(this, pid, ppid, pgid, name, argv, env, wasm,
-                resolved.startsWith(TOOLCHAIN_DIR) ? config.toolchainMemoryPages() : config.maxMemoryPages());
+                resolved.startsWith(TOOLCHAIN_DIR) ? config.toolchainMemoryPages() : config.maxMemoryPages(), config.maxThreads());
         p.cred = cred;
         p.umask = parent != null ? parent.umask : 022;
         for (var i = 0; i < stdio.length; i++) {

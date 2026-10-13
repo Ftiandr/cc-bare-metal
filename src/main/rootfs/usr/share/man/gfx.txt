@@ -8,6 +8,9 @@ to it). sysInfo().screen_width/height give that size. Depths:
   1 bpp  2 colours        2 bpp  4 colours (grey)
   4 bpp  16 colours (CC palette by default, or grey with CC_GFX_GRAY)
   8 bpp  256 colours (CC colours, 6x6x6 cube, grey ramp)
+  16 bpp true colour, RGB565      32 bpp true colour, XRGB8888
+         (no palette: colours are 0xRRGGBB; blit/read data and /dev/fbN have
+         2 or 4 bytes per pixel: RGB565 little-endian / blue green red unused)
 Smaller resolutions (e.g. 256x256 or 128x128) are scaled up and are cheaper
 to send to other players.
 

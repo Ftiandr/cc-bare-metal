@@ -40,6 +40,10 @@ BAREMETAL_IMPORT("setpgid") int32_t cc_setpgid(int32_t pid, int32_t pgid);
 BAREMETAL_IMPORT("pipe") int32_t cc_pipe(int32_t fds[2]);
 BAREMETAL_IMPORT("dup") int32_t cc_dup(int32_t fd);
 BAREMETAL_IMPORT("dup2") int32_t cc_dup2(int32_t fd, int32_t to);
+/* Processors a program may keep busy (threads): what sysconf(_SC_NPROCESSORS_ONLN) answers. */
+BAREMETAL_IMPORT("cpu_count") int32_t cc_cpu_count(void);
+/* A device control (ioctl) handled by the kernel, e.g. the OSS requests of /dev/dspN: 0 or an errno. */
+BAREMETAL_IMPORT("fd_ioctl") int32_t cc_fd_ioctl(int32_t fd, int32_t request, void *arg);
 BAREMETAL_IMPORT("sleep") int32_t cc_sleep_ms(int32_t ms);
 BAREMETAL_IMPORT("setcwd") int32_t __cc_setcwd(const char *path, int32_t len);
 /* Bits: 1 = receive machine events, 2 = receive keyboard/mouse as events (when foreground), 4 = Ctrl+C/T
@@ -148,7 +152,7 @@ BAREMETAL_IMPORT("take") int32_t cc_take(char *buf, int32_t len);
 
 /* ---- Graphics ------------------------------------------------------------------------------------------------- */
 /*
- * The screen is up to 1280x800 pixels (default: a common resolution filling the text area, see cc_sys_info screen_width), indexed colour: 1, 2, 4 or 8 bits per pixel (2, 4, 16 or 256 colours).
+ * The screen is up to 1280x800 pixels (default: a common resolution filling the text area, see cc_sys_info screen_width): indexed colour with 1, 2, 4 or 8 bits per pixel (2, 4, 16 or 256 colours, a palette), or true colour with 16 (RGB565) or 32 (XRGB8888) bits, where colours are 0xRRGGBB. Pixel data (blit, read, /dev/fbN) has 1, 2 or 4 bytes per pixel; strides are in pixels.
  * gfx_mode(0, 0, 0, 0) returns to the text terminal; the screen also returns to text when the program exits.
  * gfx_target() redirects drawing to an attached pixel monitor peripheral (NULL/0 = back to the screen).
  */
