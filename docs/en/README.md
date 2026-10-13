@@ -5,7 +5,7 @@
 | Section | Contents |
 |---|---|
 | [1. Quick start and the computer window](01-quick-start.md) | first start, the window, copy and paste, shortcuts |
-| [2. Blocks, recipes, monitors](02-blocks.md) | WASM computer, pocket computer and turtle (modules in slots), pixel monitor, recipes, sides, keeping data |
+| [2. Blocks, recipes, monitors](02-blocks.md) | WASM computer, pocket computer and turtle (modules in slots), pixel monitor, keyboard, recipes, sides, keeping data |
 | [3. System](03-system.md) | file system, the `sh` shell, all commands, `edit`, `pkg`, internet (`curl`, `wget`), `man`, Lua and CraftOS |
 | [4. Programming in C++](04-cpp.md) | compiler, `<baremetal.hpp>`, processes, events, terminal, examples |
 | [5. Graphics and input](05-graphics-input.md) | screen modes, `cc::gfx`, `/dev/fb0`, `/sys/class/graphics`, `/dev/input`, pixel monitors |

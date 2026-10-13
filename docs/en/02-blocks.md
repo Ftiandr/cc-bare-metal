@@ -1,4 +1,4 @@
-# 2. Blocks, recipes, monitors
+# 2. Blocks, recipes, monitors, keyboard
 
 ## WASM computer
 

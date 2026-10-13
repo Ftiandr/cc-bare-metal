@@ -98,7 +98,7 @@ man intro
 Details are in [docs/en](docs/en/README.md):
 
 1. [Quick start and the computer window](docs/en/01-quick-start.md)
-2. [Blocks, recipes, monitors, turtle, pocket computer](docs/en/02-blocks.md)
+2. [Blocks, recipes, monitors, turtle, pocket computer, keyboard](docs/en/02-blocks.md)
 3. [System: files, shell, commands, packages, internet, Lua](docs/en/03-system.md)
 4. [Programming in C++](docs/en/04-cpp.md)
 5. [Graphics and input: /dev/fb0, /dev/input, pixel monitors](docs/en/05-graphics-input.md)
