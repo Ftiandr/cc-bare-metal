@@ -1,3 +1,5 @@
+<img src="docs/images/logo.png" alt="CC: Bare Metal logo" width="160" align="right">
+
 # CC: Bare Metal
 
 **English** | [Русский](README.ru.md)

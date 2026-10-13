@@ -9,6 +9,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="Ftiandr"
 displayURL="https://github.com/Ftiandr/cc-bare-metal"
+logoFile="ccbaremetal_logo.png"
 credits="Built on CC: Tweaked (textures recoloured from it), Chicory, LLVM/clang (YoWASP) and wasi-sdk."
 description='''
 WebAssembly computers for CC: Tweaked: a Unix-like system with a shell and
