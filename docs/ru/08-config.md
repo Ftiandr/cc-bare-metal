@@ -7,7 +7,8 @@
 | `computer.memory_per_process_mb` | 256 | память одного процесса WebAssembly, МБ |
 | `computer.compiler_memory_mb` | 1024 | память компилятора clang, МБ (занимается только пока он работает) |
 | `computer.max_processes` | 64 | процессов на компьютер |
-| `computer.threads_per_process` | 8 | потоков у одной программы (`-pthread`): сколько ядер сервера она может занять |
+| `computer.threads_per_process` | 64 | сколько потоков может быть у одной программы (`-pthread`; большинство из них ждут) |
+| `computer.cpus_per_process` | 4 | сколько процессоров видит программа (`sysconf`, `hardware_concurrency`): сколько ядер она займёт |
 | `computer.disk_space_mb` | 64 | диск компьютера, МБ |
 | `computer.tmp_space_mb` | 16 | `/tmp` в памяти, МБ |
 | `computer.max_sync_kb_per_tick` | 128 | мягкий предел сжатых данных экрана на игрока за тик, КБ |

@@ -7,7 +7,8 @@
 | `computer.memory_per_process_mb` | 256 | memory of one WebAssembly process, MB |
 | `computer.compiler_memory_mb` | 1024 | memory of the clang compiler, MB (only taken while it runs) |
 | `computer.max_processes` | 64 | processes per computer |
-| `computer.threads_per_process` | 8 | threads of one program (`-pthread`): how many server cores it may keep busy |
+| `computer.threads_per_process` | 64 | threads one program may have (`-pthread`; most of them wait) |
+| `computer.cpus_per_process` | 4 | processors a program sees (`sysconf`, `hardware_concurrency`): how many cores it keeps busy |
 | `computer.disk_space_mb` | 64 | computer disk, MB |
 | `computer.tmp_space_mb` | 16 | in-memory `/tmp`, MB |
 | `computer.max_sync_kb_per_tick` | 128 | soft limit of compressed screen data per player per tick, KB |

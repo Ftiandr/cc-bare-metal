@@ -50,7 +50,7 @@ public final class Machine {
     /** PATH of a new session, and the search path when a program runs without PATH (as after {@code env -i}). */
     static final String DEFAULT_PATH = "/usr/local/bin:/bin:/usr/bin:/sbin";
 
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.2.1";
     private static final Logger LOG = LoggerFactory.getLogger(Machine.class);
 
     /** Sides in CC's order (ComputerSide): bottom, top, back, front, right, left. */
@@ -62,7 +62,7 @@ public final class Machine {
      *                             which needs far more than ordinary programs
      */
     public record Config(int maxMemoryPages, int toolchainMemoryPages, int maxProcesses, long diskCapacity, long tmpCapacity,
-                         int termWidth, int termHeight, int screenWidth, int screenHeight, int maxThreads) {
+                         int termWidth, int termHeight, int screenWidth, int screenHeight, int maxThreads, int cpus) {
     }
 
     /** Where the clang toolchain is mounted. */

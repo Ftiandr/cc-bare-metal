@@ -1,7 +1,8 @@
 #!/bin/sh
 # Builds SDL2 for CC: Bare Metal: build/SDL2 (fetched at a fixed commit) -> build/sdl/libSDL2.a and build/sdl/include.
 # SDL is zlib-licensed. Ours: SDL_config.h (the platform) and SDL_ccbmvideo.c (the video driver); the patches below
-# register the driver and turn off SDL's dynamic API (a static library, no dlopen on WASI).
+# register the driver, turn off SDL's dynamic API (a static library, no dlopen on WASI) and let the dummy audio
+# driver take over when there is no speaker.
 # Programs need threads (wasm32-wasip1-threads): SDL's audio and timers run on their own threads.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -24,6 +25,8 @@ mkdir -p "$SRC/src/video/ccbaremetal"
 cp "$HERE/SDL_ccbmvideo.c" "$SRC/src/video/ccbaremetal/"
 grep -q CCBAREMETAL_bootstrap "$SRC/src/video/SDL_video.c" || sed -i 's|^static VideoBootStrap \*bootstrap\[\] = {$|&\n#ifdef SDL_VIDEO_DRIVER_CCBAREMETAL\n    \&CCBAREMETAL_bootstrap,\n#endif|' "$SRC/src/video/SDL_video.c"
 grep -q CCBAREMETAL_bootstrap "$SRC/src/video/SDL_sysvideo.h" || sed -i 's|^extern VideoBootStrap DUMMY_bootstrap;$|extern VideoBootStrap CCBAREMETAL_bootstrap;\n&|' "$SRC/src/video/SDL_sysvideo.h"
+# no speaker: audio falls back to the dummy driver (silence at the right pace) instead of failing SDL_Init
+sed -i 's|^    "dummy", "SDL dummy audio driver", DUMMYAUDIO_Init, SDL_TRUE$|    "dummy", "SDL dummy audio driver", DUMMYAUDIO_Init, SDL_FALSE|' "$SRC/src/audio/dummy/SDL_dummyaudio.c"
 grep -q __wasi__ "$SRC/src/dynapi/SDL_dynapi.h" || sed -i 's|^#elif defined(__PS2__)$|#elif defined(__wasi__)\n#define SDL_DYNAMIC_API 0 /* CC: Bare Metal: a static library */\n&|' "$SRC/src/dynapi/SDL_dynapi.h"
 
 rm -rf "$OUT"

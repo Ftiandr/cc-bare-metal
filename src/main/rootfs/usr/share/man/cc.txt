@@ -23,8 +23,9 @@ RTTI, templates, the whole standard library (containers, <algorithm>,
 
 Threads: -pthread (pthreads, std::thread, atomics, _Thread_local). The
 program is built for wasm32-wasip1-threads and its threads run in parallel
-on the server's processors (at most threads_per_process of them, 8 by
-default; std::thread::hardware_concurrency() tells). exit() in any thread
+on the server's processors. A program sees at most cpus_per_process of them
+(4 by default; std::thread::hardware_concurrency() tells) and may have up to
+threads_per_process threads (64). exit() in any thread
 ends the program.
 
   cc -pthread -O2 work.c -o work

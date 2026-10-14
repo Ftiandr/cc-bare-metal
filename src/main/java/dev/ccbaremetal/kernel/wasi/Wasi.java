@@ -62,7 +62,7 @@ public final class Wasi {
             return 0;
         });
         m.fn("proc_exit", "i:", (i, mem, a) -> {
-            throw new ProcessExit((int) a[0]);
+            throw new ProcessExit((int) a[0] & 0xFF); // as on Linux: the exit status is its low 8 bits
         });
         m.fn("proc_raise", "i", (i, mem, a) -> {
             p.signal((int) a[0]);

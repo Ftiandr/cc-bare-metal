@@ -9,6 +9,8 @@ own); they are built for wasm32-wasip1-threads.
 
 Video   A window is the whole screen in 32-bit true colour, at most the
         screen's size (1280x800), or a pixel monitor: SDL_CCBAREMETAL_FB=fb1.
+        SDL_CCBAREMETAL_DEPTH=16 (RGB565) or 8 (256 colours, dithered):
+        less to send to the players than 32.
         SDL's software renderer: SDL_Renderer, textures (also YUV), window
         surfaces. No OpenGL.
 Input   Keys from /dev/input/event0, the mouse from event1 (in pixels of the
@@ -16,7 +18,8 @@ Input   Keys from /dev/input/event0, the mouse from event1 (in pixels of the
         layout. Ctrl+C becomes SDL_QUIT.
 Audio   SDL's OSS driver on /dev/dsp (the first speaker; AUDIODEV=/dev/dsp1
         for another). Any format, rate and channel count: the kernel
-        converts (see 'man dev').
+        converts (see 'man dev'). No speaker: the audio plays into silence
+        at the right pace (SDL's dummy driver) instead of failing.
 Also    threads, mutexes, timers, SDL_GetTicks, SDL_Delay, events, surfaces,
         BMP files. Not here: joysticks, haptics, sensors, shared objects.
 

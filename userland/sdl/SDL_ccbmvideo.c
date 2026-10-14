@@ -4,7 +4,8 @@
 
   A window is the whole screen (fb0) or a pixel monitor (SDL_CCBAREMETAL_FB=fbN), in 32 bpp true colour: SDL's
   window framebuffer is XRGB8888 like ours, so updates are copied as they are (cc_gfx_blit of the changed rectangles,
-  then cc_gfx_present). Rendering is SDL's software renderer on top of it.
+  then cc_gfx_present). SDL_CCBAREMETAL_DEPTH=16 shows it in RGB565 and =8 in 256 colours (a 6x7x6 cube and greys,
+  ordered dithering): less to send to the players. Rendering is SDL's software renderer on top of it.
 
   Input: keys from /dev/input/event0 (Linux key codes, SDL's own table), the mouse from /dev/input/event1 (absolute,
   in framebuffer pixels), text from the terminal (raw mode: typed characters as UTF-8, whatever the keyboard layout).
@@ -37,6 +38,10 @@ static int keyboardFd = -1, mouseFd = -1;
 static int oldTtyMode = -1;
 static int maxW = 1280, maxH = 800;
 static int onScreen = 1;
+static int depth = 32;                 /* the framebuffer's: 32, 16 or 8 */
+static Uint8 *converted;               /* a rectangle in 16 or 8 bpp */
+static size_t convertedSize;
+static Uint8 lut[3][16][256];          /* 8 bpp: per colour channel, per dither cell */
 static char text[64];
 static int textLength;
 
@@ -90,6 +95,10 @@ static int CCBM_VideoInit(_THIS)
     }
     SDL_AddDisplayMode(&_this->displays[0], &mode);
 
+    {
+        const char *d = SDL_getenv("SDL_CCBAREMETAL_DEPTH");
+        depth = d && SDL_atoi(d) == 16 ? 16 : d && SDL_atoi(d) == 8 ? 8 : 32;
+    }
     keyboardFd = open("/dev/input/event0", O_RDONLY | O_NONBLOCK);
     mouseFd = open("/dev/input/event1", O_RDONLY | O_NONBLOCK);
     if (isatty(0)) {
@@ -114,6 +123,9 @@ static void CCBM_VideoQuit(_THIS)
         cc_tty_mode(oldTtyMode);
         oldTtyMode = -1;
     }
+    SDL_free(converted);
+    converted = NULL;
+    convertedSize = 0;
     cc_gfx_mode(0, 0, 0, 0);
     if (!onScreen) {
         cc_gfx_target(NULL);
@@ -158,8 +170,35 @@ static int CCBM_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *forma
     if (h > maxH) {
         h = maxH;
     }
-    if (cc_gfx_mode(w, h, 32, 0) != 0) {
-        return SDL_SetError("cannot show %dx%d graphics", w, h);
+    if (cc_gfx_mode(w, h, depth, 0) != 0) {
+        return SDL_SetError("cannot show %dx%d graphics at %d bpp", w, h, depth);
+    }
+    if (depth == 8) {
+        /* the palette: 6x7x6 colours and 4 greys; dithering tables per channel */
+        static const int bayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+        uint32_t rgb[256];
+        int r, g, b, k, v;
+        for (r = 0; r < 6; r++) {
+            for (g = 0; g < 7; g++) {
+                for (b = 0; b < 6; b++) {
+                    rgb[r * 42 + g * 6 + b] = (uint32_t)(r * 255 / 5) << 16 | (uint32_t)(g * 255 / 6) << 8 | (uint32_t)(b * 255 / 5);
+                }
+            }
+        }
+        for (k = 0; k < 4; k++) {
+            uint32_t grey = (uint32_t)(40 + k * 50);
+            rgb[252 + k] = grey << 16 | grey << 8 | grey;
+        }
+        cc_gfx_palette(0, 256, rgb);
+        for (k = 0; k < 16; k++) {
+            double t = (bayer[k] + 0.5) / 16.0;
+            for (v = 0; v < 256; v++) {
+                int rr = (int)(v * 5 / 255.0 + t), gg = (int)(v * 6 / 255.0 + t), bb = (int)(v * 5 / 255.0 + t);
+                lut[0][k][v] = (Uint8)((rr > 5 ? 5 : rr) * 42);
+                lut[1][k][v] = (Uint8)((gg > 6 ? 6 : gg) * 6);
+                lut[2][k][v] = (Uint8)(bb > 5 ? 5 : bb);
+            }
+        }
     }
     surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 0, SDL_PIXELFORMAT_RGB888);
     if (!surface) {
@@ -186,7 +225,37 @@ static int CCBM_UpdateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rec
         if (!SDL_IntersectRect(&r, &all, &r)) {
             continue;
         }
-        cc_gfx_blit(r.x, r.y, r.w, r.h, (const uint8_t *)surface->pixels + (r.y * stride + r.x) * 4, stride);
+        if (depth == 32) {
+            cc_gfx_blit(r.x, r.y, r.w, r.h, (const uint8_t *)surface->pixels + (r.y * stride + r.x) * 4, stride);
+            continue;
+        }
+        {
+            size_t need = (size_t)r.w * r.h * (depth / 8);
+            int x, y;
+            if (need > convertedSize) {
+                Uint8 *grown = (Uint8 *)SDL_realloc(converted, need);
+                if (!grown) {
+                    return SDL_OutOfMemory();
+                }
+                converted = grown;
+                convertedSize = need;
+            }
+            for (y = 0; y < r.h; y++) {
+                const Uint32 *src = (const Uint32 *)surface->pixels + (r.y + y) * stride + r.x;
+                for (x = 0; x < r.w; x++) {
+                    Uint32 c = src[x];
+                    if (depth == 16) {
+                        Uint16 v = (Uint16)(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x001F));
+                        converted[(y * r.w + x) * 2] = (Uint8)v;
+                        converted[(y * r.w + x) * 2 + 1] = (Uint8)(v >> 8);
+                    } else {
+                        int k = ((r.y + y) & 3) * 4 + ((r.x + x) & 3);
+                        converted[y * r.w + x] = (Uint8)(lut[0][k][(c >> 16) & 255] + lut[1][k][(c >> 8) & 255] + lut[2][k][c & 255]);
+                    }
+                }
+            }
+            cc_gfx_blit(r.x, r.y, r.w, r.h, converted, r.w);
+        }
     }
     cc_gfx_present();
     return 0;

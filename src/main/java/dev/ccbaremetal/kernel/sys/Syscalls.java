@@ -758,8 +758,8 @@ public final class Syscalls {
         });
 
         // ---- System ----
-        // processors a program may use: the server's, at most the threads one process may have
-        m.fn("cpu_count", ":i", (i, mem, a) -> Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().maxThreads())));
+        // processors a program sees: the server's, at most cpus_per_process
+        m.fn("cpu_count", ":i", (i, mem, a) -> Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().cpus())));
         m.fn("sys_info", ":i", (i, mem, a) -> {
             var info = new LinkedHashMap<String, Object>();
             info.put("id", machine.id());
@@ -776,7 +776,7 @@ public final class Syscalls {
             info.put("screen_height", size[1]);
             info.put("max_screen_width", machine.framebuffer().maxWidth());
             info.put("max_screen_height", machine.framebuffer().maxHeight());
-            info.put("cpus", Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().maxThreads())));
+            info.put("cpus", Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), machine.config().cpus())));
             return pending(p, Json.write(info, p.objects::encode));
         });
         m.fn("sys_set_label", "ii", (i, mem, a) -> {

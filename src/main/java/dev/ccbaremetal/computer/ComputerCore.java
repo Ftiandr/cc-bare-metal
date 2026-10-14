@@ -169,7 +169,8 @@ public final class ComputerCore implements Machine.Host {
             BareMetalConfig.get(BareMetalConfig.MAX_PROCESSES),
             BareMetalConfig.get(BareMetalConfig.DISK_SPACE_MB) * 1024L * 1024L,
             BareMetalConfig.get(BareMetalConfig.TMP_SPACE_MB) * 1024L * 1024L,
-            termCols, termRows, 1280, 800, BareMetalConfig.get(BareMetalConfig.THREADS_PER_PROCESS));
+            termCols, termRows, 1280, 800, BareMetalConfig.get(BareMetalConfig.THREADS_PER_PROCESS),
+            BareMetalConfig.get(BareMetalConfig.CPUS_PER_PROCESS));
         machine = new Machine(computerId, storage, SystemImage.get(), config, this);
         machine.loadLabel(label);
         synchronized (RUNNING) {

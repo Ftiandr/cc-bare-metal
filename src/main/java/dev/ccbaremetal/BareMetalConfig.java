@@ -10,6 +10,7 @@ public final class BareMetalConfig {
     public static final ModConfigSpec.IntValue COMPILER_MEMORY_MB;
     public static final ModConfigSpec.IntValue MAX_PROCESSES;
     public static final ModConfigSpec.IntValue THREADS_PER_PROCESS;
+    public static final ModConfigSpec.IntValue CPUS_PER_PROCESS;
     public static final ModConfigSpec.IntValue DISK_SPACE_MB;
     public static final ModConfigSpec.IntValue TMP_SPACE_MB;
     public static final ModConfigSpec.IntValue MONITOR_MAX_WIDTH;
@@ -28,9 +29,12 @@ public final class BareMetalConfig {
             .defineInRange("compiler_memory_mb", 1024, 64, 4096);
         MAX_PROCESSES = builder.comment("Maximum number of processes per computer.")
             .defineInRange("max_processes", 64, 4, 1024);
-        THREADS_PER_PROCESS = builder.comment("Maximum number of threads of one WebAssembly process (pthreads; each is a",
-                "thread of the server, so this is how many cores one program may keep busy).")
-            .defineInRange("threads_per_process", 8, 1, 256);
+        THREADS_PER_PROCESS = builder.comment("Maximum number of threads of one WebAssembly process (pthreads). Most of them",
+                "wait (FFmpeg has one per stage); how many work at once follows cpus_per_process.")
+            .defineInRange("threads_per_process", 64, 1, 1024);
+        CPUS_PER_PROCESS = builder.comment("Processors one program sees (sysconf, std::thread::hardware_concurrency), at most",
+                "the server's: programs start that many worker threads, so this is how many cores one program keeps busy.")
+            .defineInRange("cpus_per_process", 4, 1, 256);
         DISK_SPACE_MB = builder.comment("Disk space of each computer, in MiB.")
             .defineInRange("disk_space_mb", 64, 1, 4096);
         TMP_SPACE_MB = builder.comment("Size of the in-memory /tmp of each computer, in MiB.")

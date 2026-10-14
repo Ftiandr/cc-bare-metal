@@ -38,8 +38,8 @@ c++ -pthread game.cpp -o game             # std::thread, std::mutex, std::async.
 
 `-pthread` builds for `wasm32-wasip1-threads`: the program's memory is shared, and every thread runs on its own
 thread of the server, in parallel (WASI's thread-spawn). `std::thread::hardware_concurrency()` and
-`sysconf(_SC_NPROCESSORS_ONLN)` give the server's processors, at most `threads_per_process` (8 by default):
-the limit of threads one program may have. `exit()` from any thread, or the end of `main`, ends them all; `kill`
+`sysconf(_SC_NPROCESSORS_ONLN)` give the server's processors, at most `cpus_per_process` (4 by default), so
+programs start that many workers; a program may have up to `threads_per_process` threads (64). `exit()` from any thread, or the end of `main`, ends them all; `kill`
 and Ctrl+C too. Scheduling priorities are accepted and have no effect. Outside the game:
 `--target=wasm32-wasip1-threads -pthread -Wl,--import-memory,--export-memory,--max-memory=4294967296`.
 
@@ -53,11 +53,12 @@ cc game.c $(sdl2-config --cflags --libs) -o game      # = -I/usr/include/SDL2 -p
 ```
 
 - Video: a window is the whole screen in 32-bit true colour (or a pixel monitor: `SDL_CCBAREMETAL_FB=fb1`), at most
-  the screen's size; SDL's software renderer (`SDL_Renderer`, textures, YUV) and window surfaces work.
+  the screen's size; `SDL_CCBAREMETAL_DEPTH=16` or `8` (256 colours, dithered) sends less to the players. SDL's
+  software renderer (`SDL_Renderer`, textures, YUV) and window surfaces work.
 - Input: keys from `/dev/input/event0`, the mouse from `event1`, text (`SDL_TEXTINPUT`) from the terminal in any
   keyboard layout; Ctrl+C becomes `SDL_QUIT`.
 - Audio: SDL's OSS driver on `/dev/dsp` (the first speaker; `AUDIODEV=/dev/dsp1` for another), any format and rate
-  (the kernel converts).
+  (the kernel converts). Without a speaker, audio plays into silence at the right pace instead of failing.
 - Threads, timers, `SDL_GetTicks`, `SDL_Delay`: yes. No joysticks, haptics, OpenGL or shared objects.
 
 SDL needs threads (audio and timers run on their own), so `-lSDL2` turns `-pthread` on by itself.

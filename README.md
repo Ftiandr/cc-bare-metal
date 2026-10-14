@@ -76,6 +76,14 @@ Programs run in a sandbox: they can only reach their own computer's files.
 
 ![Turtle modules](docs/images/turtle-modules.png)
 
+## What's new in 0.2.1
+
+- Programs may have up to 64 threads (`threads_per_process`) and see 4 processors (`cpus_per_process`): enough for
+  FFmpeg 8 and its player.
+- SDL: windows in 16 or 8 bits (`SDL_CCBAREMETAL_DEPTH`) for less traffic; without a speaker, audio plays into
+  silence instead of failing.
+- Exit statuses are 0-255, as on Linux.
+
 ## What's new in 0.2.0
 
 - Threads (`cc -pthread`, `std::thread`), with a `threads_per_process` limit in the config.
